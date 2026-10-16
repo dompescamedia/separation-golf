@@ -72,7 +72,8 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .theme{font-family:var(--script);color:var(--red);font-size:25px;line-height:1.1}
 .hole{display:flex;flex-direction:column;gap:12px}
 .matchup{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start}
-.matchup .dots{padding-top:30px}
+.matchup .dots{padding-top:36px;color:var(--red)}
+.dots .arrow{display:block;width:clamp(48px,15vw,72px);height:auto}
 .who{min-width:0}
 .who .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
 .who .nm{font-family:var(--display);font-weight:400;font-size:clamp(14px,4.4vw,22px);line-height:1.1;text-transform:uppercase;letter-spacing:.01em}
@@ -641,7 +642,7 @@ function holeHTML(){
     <div><div class="eyebrow">${esc(holeLabel())}${lim&&!theme?" · "+esc(lim):""}</div>${theme?`<div class="theme">${esc(theme)}</div>`:""}</div>
     <div class="matchup">
       <div class="who"><button class="facebtn" data-card="${h.a}" aria-label="${esc(P[h.a][0])} baseball card">${face(h.a)}</button><div class="lbl">Tee</div><button class="nm cardlink" data-card="${h.a}">${esc(P[h.a][0])}</button><div class="yr">${yrs(h.a)}</div>${peekToggle("a",h.a)}</div>
-      <div class="dots" aria-hidden="true">···›</div>
+      <div class="dots" aria-hidden="true"><svg class="arrow" viewBox="0 0 64 24"><path d="M3 12h46" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="1 8"/><path d="M45 4l12 8-12 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="who pin"><button class="facebtn" data-card="${h.b}" aria-label="${esc(P[h.b][0])} baseball card">${face(h.b)}</button><div class="lbl"><span class="flag"></span>Pin</div><button class="nm cardlink" data-card="${h.b}">${esc(P[h.b][0])}</button><div class="yr">${yrs(h.b)}</div>${peekToggle("b",h.b)}</div>
     </div>
     ${scoreHTML()}
