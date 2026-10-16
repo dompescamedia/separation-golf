@@ -478,7 +478,7 @@ const DAILY_SET={"2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01",
   "2026-11-08":["morgajo02","ramirjo01"],"2026-11-09":["fiskca01","bogaexa01"],"2026-11-10":["killeha01","seageco01"],
   "2026-11-11":["spahnwa01","salech01"],"2026-11-12":["camparo01","rodriju01"]};
 // The Archive stays off until there are past Dailies worth replaying (Dom, Oct 2026).
-const SHOW_ARCHIVE=false;
+const SHOW_ARCHIVE=true;
 // Regular Daily: a well-known player from the past tees off, a relevant current player is the pin.
 const pastStar=a=>P[a][2]<2000&&P[a][4]>=40, nowPin=b=>P[b][2]>=2024&&P[b][4]>=18;
 function dailyPlan(d){if(PLAN[d])return PLAN[d];
