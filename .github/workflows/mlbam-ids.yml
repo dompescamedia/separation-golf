@@ -1,0 +1,18 @@
+name: Refresh MLB player IDs
+on:
+  workflow_dispatch:
+  push:
+    paths: [tools/mlbam_ids.py, .github/workflows/mlbam-ids.yml]
+permissions:
+  contents: write
+jobs:
+  ids:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/mlbam_ids.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add mlbam.json
+          git diff --cached --quiet || (git commit -m "Refresh MLB player IDs" && git push)
