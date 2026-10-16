@@ -363,6 +363,18 @@ input,select,textarea{font-size:16px!important}
   .seg button[aria-pressed="true"]{--bar-bg:var(--green)}
   .toast{bottom:calc(var(--bar-h) + 22px + env(safe-area-inset-bottom,0px))}
 }
+.dleft{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hardsw{display:inline-flex;align-items:center;gap:8px;min-height:32px;cursor:pointer;font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hardsw input{position:absolute;opacity:0;width:1px;height:1px}
+.hardsw .trk{position:relative;width:44px;height:26px;border:2px solid var(--ink);border-radius:13px;background:var(--card);flex:none;transition:background .15s}
+.hardsw .knb{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--ink);transition:transform .15s}
+.hardsw input:checked+.trk{background:var(--red);border-color:var(--red)}
+.hardsw input:checked+.trk .knb{transform:translateX(18px);background:#f8f0dc}
+.hardsw.on{color:var(--red)}
+.hardsw input:disabled+.trk{opacity:.55}.hardsw:has(input:disabled){cursor:default}
+.hardsw input:focus-visible+.trk{outline:2px solid var(--pin);outline-offset:2px}
+body.hardon .cardbtn{display:none}
+body.hardon .pwrap .pbtn{padding-right:12px}
 [hidden]{display:none!important}
 footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
 @media (prefers-reduced-motion:no-preference){.roster{animation:drop .16s ease-out}@keyframes drop{from{opacity:.4;transform:translateY(-4px)}}}
@@ -510,7 +522,9 @@ function newHole(a,b,kind,meta,C,saveKey,dir){
   let allow=allowFor(C),toT=bfs(b,allow);
   if(toT.dist[a]<0){allow=null;C=null;toT=bfs(b);toast("No route inside those limits, so this hole uses every roster")}
   S.hole={a,b,kind,meta,C,allow,distT:toT.dist,best:toT.dist[a],par:toT.dist[a]+2,trail:[{p:a,t:-1}],strokes:0,hints:0,hintTeam:-1,done:false,gaveUp:false,saveKey};
-  if(saveKey){const sv=store.get(saveKey);if(sv&&sv.a===P[a][3]&&sv.b===P[b][3])Object.assign(S.hole,{trail:sv.trail,strokes:sv.strokes,hints:sv.hints,done:sv.done,gaveUp:sv.gaveUp,mullUsed:!!sv.mullUsed,n:sv.n??sv.strokes})}
+  // Hard mode (Daily only): only the tee and pin cards open. Last choice is the default for a new day; locked once the first move is made.
+  S.hole.hard=kind==="daily"&&!!store.get("hardPref");
+  if(saveKey){const sv=store.get(saveKey);if(sv&&sv.a===P[a][3]&&sv.b===P[b][3])Object.assign(S.hole,{hard:kind==="daily"&&!!sv.hard,trail:sv.trail,strokes:sv.strokes,hints:sv.hints,done:sv.done,gaveUp:sv.gaveUp,mullUsed:!!sv.mullUsed,n:sv.n??sv.strokes})}
   if(S.clockOn&&(kind==="endless"||kind==="custom")&&!S.hole.done)S.hole.clock={t0:Date.now(),ticks:0};
   S.open=-1;S.filter="";S.tq="";S.peek={};save();
 }
@@ -521,7 +535,9 @@ setInterval(()=>{const h=S.hole;if(!h||!h.clock||h.done)return;
   const sb=$("#scorebox");if(!sb)return;
   if(changed){toast("Shot clock. +1 stroke");save();const cv=$("#clockv");sb.outerHTML=scoreHTML();if(cv)cv.remove()}
   else{const cv=$("#clockv");if(cv)cv.innerHTML=clockTxt()}},1000);
-function save(){const h=S.hole;if(!h||!h.saveKey)return;if(h.meta.late){const o=store.get(h.saveKey);if(o&&!o.late)h.meta.late=false}store.set(h.saveKey,{a:P[h.a][3],b:P[h.b][3],trail:h.trail,strokes:h.strokes,hints:h.hints,done:h.done,gaveUp:h.gaveUp,par:h.par,mullUsed:!!h.mullUsed,n:h.n,late:h.meta.late||undefined,clk:h.clock?h.clock.ticks:undefined})}
+function save(){const h=S.hole;if(!h||!h.saveKey)return;if(h.meta.late){const o=store.get(h.saveKey);if(o&&!o.late)h.meta.late=false}store.set(h.saveKey,{a:P[h.a][3],b:P[h.b][3],trail:h.trail,strokes:h.strokes,hints:h.hints,done:h.done,gaveUp:h.gaveUp,par:h.par,mullUsed:!!h.mullUsed,n:h.n,late:h.meta.late||undefined,clk:h.clock?h.clock.ticks:undefined,hard:h.hard||undefined})}
+const hardLive=()=>{const h=S.hole;return!!(h&&h.kind==="daily"&&h.hard&&!h.done)};
+const hardLocked=h=>h.trail.length>1||h.strokes>0||h.hints>0||h.done;
 const cur=()=>S.hole.trail[S.hole.trail.length-1].p;
 const teamsOf=u=>S.hole.allow?PT[u].filter(ti=>S.hole.allow[ti]):PT[u];
 const ageIn=(p,ti)=>P[p][7]?T[ti][0]-P[p][7]:null;
@@ -616,6 +632,7 @@ function holeLabel(){const h=S.hole;
   return"Custom challenge"}
 
 function render(){
+  document.body.classList.toggle("hardon",hardLive()&&S.mode==="daily");
   ["daily","round","endless","custom","range"].forEach(k=>$("#m-"+k).setAttribute("aria-pressed",S.mode===k));
   let html="";
   if(S.mode==="hall"){$("#main").innerHTML=hallHTML();bindHall();return}
@@ -624,7 +641,7 @@ function render(){
   if(S.mode==="custom")html+=rangeHTML()+teamsHTML()+customHTML();
   if(S.mode==="tutor"&&S.hole&&S.hole.kind==="tutor")html+=tutorHTML()+holeHTML();
   if(S.mode==="range")html+=`<div class="card"><div class="eyebrow">Practice range</div><div class="small">Short holes, one or two jumps, with well-known players. Nothing is scored and hints are free.</div></div>`;
-  if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div>${SHOW_ARCHIVE?'<button class="btn" id="archive">Archive</button>':""}</div>`;
+  if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="dleft"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div><label class="hardsw${S.hole.hard?" on":""}"><input type="checkbox" role="switch" id="hardtog" ${S.hole.hard?"checked":""} ${hardLocked(S.hole)?"disabled":""}><span class="trk"><span class="knb"></span></span><span class="hl">Hard mode</span></label></div>${SHOW_ARCHIVE?'<button class="btn" id="archive">Archive</button>':""}</div>`;
   if(S.hole&&S.hole.kind===({daily:"daily",round:"round",endless:"endless",custom:"custom",range:"range"})[S.mode])html+=holeHTML();
   $("#main").innerHTML=html;bind();
 }
@@ -705,7 +722,7 @@ function resultHTML(){
     <div class="pins">${h.pick.opts.map((o,i)=>`<button class="pinopt" data-pin="${i}"><span class="flag"></span><span class="pn">${esc(P[o.b][0])}</span><span class="py">${yrs(o.b)} · Par ${o.par}</span></button>`).join("")}</div>
     <button class="btn" id="next">Surprise me</button></div>`:"";
   return `<section class="card result" aria-live="polite">
-    ${rivalHTML()}${h.kind==="daily"&&!h.meta.late||h.kind==="round"&&h.meta.idx===8?nextInHTML():""}<div class="eyebrow">${h.gaveUp?"Here's how it could go":"Holed out"}</div>
+    ${rivalHTML()}${h.kind==="daily"&&!h.meta.late||h.kind==="round"&&h.meta.idx===8?nextInHTML():""}<div class="eyebrow">${h.gaveUp?"Here's how it could go":"Holed out"}${h.hard?" · Hard mode":""}</div>
     <div class="term ${!h.gaveUp&&rel>0?"over":""}">${esc(t)}</div>
     <div class="small muted">${h.gaveUp?`Shortest route was ${h.best} jump${h.best>1?"s":""}.`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}${h.hints?`, ${h.hints} hint${h.hints>1?"s":""}`:""}. Perfect route: ${h.best}.`}</div>
     <div class="paths">
@@ -734,7 +751,7 @@ function rivalHTML(){const h=S.hole,r=h.rival;if(!r)return"";
   const d=r.strokes-h.strokes;return`<div class="rival"><span class="rv">Rival</span>${d>0?`You beat your friend by <b>${d}</b>.`:d<0?`Your friend wins by <b>${-d}</b>.`:"All square. You tied your friend."}</div>`}
 function shareText(){
   const h=S.hole,rel=h.strokes-h.par;
-  const head=h.kind==="daily"?`⛳ Separation Golf · Daily #${h.meta.n}`:h.kind==="round"?`⛳ Separation Golf · Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:`⛳ Separation Golf`;
+  const head=h.kind==="daily"?`⛳ Separation Golf · Daily #${h.meta.n}${h.hard?" · Hard mode 🔥":""}`:h.kind==="round"?`⛳ Separation Golf · Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:`⛳ Separation Golf`;
   const balls=h.gaveUp?"❌":h.trail.slice(1).map((st,i)=>i===h.trail.length-2?"⛳":"⚾").join("")+(h.hints?" "+"💡".repeat(h.hints):"");
   const line=(h.gaveUp?`Par ${h.par} · picked up`:`Par ${h.par} · ${h.strokes} strokes · ${term(rel,h.strokes)}`)+(h.mullUsed?" · mulligan":"");
   return [head,h.meta.label||"",`${P[h.a][0]} → ${P[h.b][0]}`,line,balls,h.kind==="daily"||h.kind==="round"?BASE_URL:challengeLink()].filter(Boolean).join("\n");
@@ -790,7 +807,7 @@ function searchPlayers(q){q=norm(q.trim());if(q.length<2)return[];const C=custom
 // Baseball cards: stats live in 50 shard files and load only when a card opens.
 const CARDS={};
 function loadCard(i){const k=i%50;if(!CARDS[k])CARDS[k]=fetch("cards/"+k+".json").then(r=>r.json()).catch(e=>{delete CARDS[k];throw e});return CARDS[k].then(d=>d[i]||{})}
-function openCard(i,tab){S.cardP=i;$("#cardov").hidden=false;$("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div></div></div><div class="cload">Pulling the card…</div>`;
+function openCard(i,tab){if(hardLive()&&i!==S.hole.a&&i!==S.hole.b){toast("Hard mode: only the tee and pin cards open");return}S.cardP=i;$("#cardov").hidden=false;$("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div></div></div><div class="cload">Pulling the card…</div>`;
   loadCard(i).then(c=>{if(S.cardP===i)renderCard(i,c,tab)}).catch(()=>{$("#cardbody").innerHTML+='<div class="cload">The card did not load. Close it and try again.</div>'})}
 function closeCard(){$("#cardov").hidden=true;S.cardP=null}
 const rate=(n,d,dig=3)=>d>0?(n/d).toFixed(dig).replace(/^0(?=\.)/,""):"—";
@@ -855,7 +872,7 @@ function welcomeHTML(){return`<h2 class="mtitle" id="mtitle">Welcome to Separati
   <p>Get from the <b>tee</b> player to the <b>pin</b> player by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
   <div class="scoring"><b>Eagle</b><span>the shortest route</span><b>Birdie</b><span>one extra jump</span><b>Par</b><span>two extra jumps</span></div>
   <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> per hole (per round in Daily 9). Scores stop at 10.</p>
-  <ul class="small"><li><b>Daily</b> one hole for everyone, new at midnight Eastern.</li>
+  <ul class="small"><li><b>Daily</b> one hole for everyone, new at midnight Eastern. Flip on <b>Hard mode</b> to play without teammate cards.</li>
   <li><b>Daily 9</b> nine holes, tougher as you go.</li>
   <li><b>Endless</b> choose your next pin, with an optional <b>shot clock</b> (a stroke a minute).</li>
   <li><b>Custom</b> your players, years, teams and direction.</li>
@@ -914,6 +931,7 @@ function bind(){bindCards();
   on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
   on("toround",()=>setMode("round"));
   on("tutdaily",()=>setMode("daily"));on("tutrange",()=>setMode("range"));
+  const ht=$("#hardtog");if(ht)ht.onchange=()=>{const h=S.hole;if(hardLocked(h)){ht.checked=h.hard;return}h.hard=ht.checked;store.set("hardPref",h.hard);save();render();toast(h.hard?"Hard mode: only the tee and pin cards open":"Hard mode off")};
   on("nextball",()=>{startRange();render();window.scrollTo({top:0,behavior:"smooth"})});
   on("archive",()=>openModal(archiveHTML()));
   document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const pk=S.hole.pick,o=pk.opts[+b.dataset.pin];newHole(pk.a,o.b,"endless",{diff:S.diff},{...S.range},null,"keep");render();window.scrollTo({top:0,behavior:"smooth"})});
