@@ -400,7 +400,9 @@ const SPECIALS={"04-15":{label:"Jackie Robinson Day",tee:"robinja02"}};
 const knownOr2000s=b=>P[b][4]>=12||(P[b][2]>=2000&&seasons(b)>=6);
 const PLAN={};
 // Hand-picked Dailies by date (Eastern): [tee, pin] as player IDs.
-const DAILY_SET={"2026-10-15":["rosepe01","raleica01"]};
+const DAILY_SET={"2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01","ohtansh01"],"2026-10-17":["mayswi01","judgeaa01"],
+  "2026-10-18":["jacksre01","bettsmo01"],"2026-10-19":["aaronha01","harpebr03"],"2026-10-20":["koufasa01","troutmi01"],
+  "2026-10-21":["clemero01","sotoju01"],"2026-10-22":["mantlmi01","freemfr01"]};
 // Regular Daily: a well-known player from the past tees off, a relevant current player is the pin.
 const pastStar=a=>P[a][2]<2000&&P[a][4]>=22, nowPin=b=>P[b][2]>=2024&&P[b][4]>=12;
 function dailyPlan(d){if(PLAN[d])return PLAN[d];
