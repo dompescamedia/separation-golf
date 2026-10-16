@@ -399,16 +399,16 @@ const fmtDate=s=>new Date(s+"T12:00:00Z").toLocaleDateString(undefined,{month:"s
 const SPECIALS={"04-15":{label:"Jackie Robinson Day",tee:"robinja02"}};
 const knownOr2000s=b=>P[b][4]>=12||(P[b][2]>=2000&&seasons(b)>=6);
 const PLAN={};
+// Hand-picked Dailies by date (Eastern): [tee, pin] as player IDs.
+const DAILY_SET={"2026-10-15":["rosepe01","raleica01"]};
+// Regular Daily: a well-known player from the past tees off, a relevant current player is the pin.
+const pastStar=a=>P[a][2]<2000&&P[a][4]>=22, nowPin=b=>P[b][2]>=2024&&P[b][4]>=12;
 function dailyPlan(d){if(PLAN[d])return PLAN[d];
-  const rng=rngFrom("sepgolf:"+d),mmdd=+d.slice(5,7)*100+ +d.slice(8,10),wd=weekday(d),sp=SPECIALS[d.slice(5)];
+  const rng=rngFrom("sepgolf:"+d),sp=SPECIALS[d.slice(5)],set=DAILY_SET[d];
   let plan=null;
-  if(sp&&ID2.has(sp.tee))plan={pair:pickPair(rng,{lo:3,hi:5,tee:ID2.get(sp.tee),pinOk:knownOr2000s}),label:sp.label,C:null};
-  if(!plan&&wd===4){const C={from:MINY,to:1979,strict:false};plan={pair:pickPair(rng,{lo:3,hi:5,gap:20,C,minFame:12,pinOk:b=>P[b][4]>=12&&P[b][1]<1980}),label:"Throwback Thursday · stars from before 1980",C:null}}
-  if(!plan&&wd===0){const act=FR.map((f,i)=>i).filter(i=>FR[i][1]),f=act[Math.floor(rng()*act.length)],C={from:MINY,to:MAXY,strict:true,fr:[f]};
-    plan={pair:pickPair(rng,{lo:2,hi:4,gap:15,C,minFame:8,pinOk:b=>P[b][4]>=8}),label:"Franchise Sunday · "+FR[f][0]+" only",C}}
-  if(!plan){const bd=pickPair(rng,{lo:3,hi:5,gap:15,minFame:12,pinOk:b=>P[b][8]===mmdd&&P[b][4]>=12,strictOnly:true});
-    if(bd)plan={pair:bd,label:"Happy birthday, "+P[bd[1]][0],C:null}}
-  if(!plan)plan={pair:pickPair(rng,{lo:3,hi:5,gap:25,minFame:12,pinOk:knownOr2000s}),label:"",C:null};
+  if(set&&ID2.has(set[0])&&ID2.has(set[1]))plan={pair:[ID2.get(set[0]),ID2.get(set[1])],label:"",C:null};
+  if(!plan&&sp&&ID2.has(sp.tee))plan={pair:pickPair(rng,{lo:3,hi:5,tee:ID2.get(sp.tee),pinOk:nowPin}),label:sp.label,C:null};
+  if(!plan)plan={pair:pickPair(rng,{lo:3,hi:5,gap:25,minFame:12,teeOk:pastStar,pinOk:nowPin}),label:"",C:null};
   return PLAN[d]=plan}
 const ROUND_BANDS=[[2,2],[3,3],[3,4],[2,3],[4,5],[3,3],[3,4],[4,5],[5,6]];
 // Daily 9: tee is a solid 1970s player (a pre-1970 legend only on holes 5 and 9); pin is a 2000s star or a decent player who finished in 2010 or later.
