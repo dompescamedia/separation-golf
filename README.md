@@ -10,3 +10,4 @@ Play: https://dompescamedia.github.io/separation-golf/
 - `data.json` holds every player and team-season roster. `cards/*.json` hold the stats for the baseball cards.
 - `scripts/build.py` and `scripts/build_stats.py` rebuild those files from the [Lahman Baseball Database](https://sabr.org/lahman-database/) (via the `pylahman` Python package).
 - The site is served by GitHub Pages straight from the `main` branch.
+- Player headshots load from MLB's image server by MLB ID. `.github/workflows/mlbam-ids.yml` refreshes `mlbam.json` (Baseball-Reference ID to MLB ID, from the Chadwick Bureau register), and `tools/add_mlbam.py` writes those IDs into `data.json`. Run it again after rebuilding `data.json`.

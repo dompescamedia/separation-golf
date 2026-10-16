@@ -213,7 +213,16 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .cardbtn:hover{color:var(--red);border-color:var(--red)}
 .bbcard{position:relative;max-width:560px;width:100%;background:var(--cb);color:var(--cb-ink);border:8px solid var(--cb-edge);border-radius:12px;box-shadow:6px 6px 0 var(--shadow);padding:14px;display:flex;flex-direction:column;gap:10px}
 .bbcard .x{background:var(--cb);border-color:var(--cb-ink);color:var(--cb-ink)}
-.bbhead{background:var(--cb-band);color:var(--cb-on-band);margin:-14px -14px 0;padding:14px 56px 10px 14px;border-radius:4px 4px 0 0}
+.bbhead{background:var(--cb-band);color:var(--cb-on-band);margin:-14px -14px 0;padding:14px 56px 12px 14px;border-radius:4px 4px 0 0;display:flex;align-items:flex-end;gap:12px}
+.face{--sil:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cpath fill='%23a8987a' d='M19 24c0-8 5-13 11-13s11 5 11 13zM38 21h11v3H38zM21 28h18c0 7-4 12-9 12s-9-5-9-12zM8 60c1-10 10-15 22-15s21 5 22 15z'/%3E%3C/svg%3E");
+  display:block;width:60px;height:60px;border:2px solid var(--ink);border-radius:4px;overflow:hidden;background:#e6d8b8 var(--sil) center bottom/100% no-repeat;flex:none}
+.face img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 15%;background:#e6d8b8}
+.face.sm{width:46px;height:46px}
+.face.cardface{width:76px;height:92px;border:3px solid var(--cb-on-band);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.25)}
+.facebtn{padding:0;border:0;background:none;display:inline-block;margin-bottom:6px}
+.who.pin .facebtn{margin-left:auto;display:block;width:max-content}
+.onwho{display:flex;gap:10px;align-items:center}
+.onwho .facebtn{margin:0}
 .bbname{font-family:var(--display);font-size:24px;line-height:1.05;text-transform:uppercase}
 .bbsub{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
 .bbsub .hof{color:var(--cb-gold)}
@@ -478,6 +487,9 @@ function finish(gave){const h=S.hole;h.done=true;if(h.clock)h.clock.end=Date.now
 
 function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Albatross","-2":"Eagle","-1":"Birdie","0":"Par","1":"Bogey","2":"Double bogey","3":"Triple bogey"})[rel]||"+"+rel}
 const sym=r=>!r||!r.done?"·":r.gaveUp?"❌":(r.strokes-r.par<=-2?"🦅":r.strokes-r.par===-1?"🐦":r.strokes-r.par===0?"⚪":r.strokes-r.par===1?"🟧":"🟥");
+// Headshots come from MLB's image server by MLB ID (players[i][9]). No ID or no photo shows the silhouette.
+const HS=i=>{const m=P[i][9];return m?`https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/${m}/headshot/67/current`:""};
+const face=(i,cls)=>{const u=HS(i);return`<span class="face ${cls||""}" aria-hidden="true">${u?`<img src="${u}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span>`};
 const yrs=i=>P[i][1]===P[i][2]?String(P[i][1]):P[i][1]+"–"+P[i][2];
 const tname=ti=>T[ti][0]+" "+TN[T[ti][1]];
 const bref=i=>{const id=P[i][3];return "https://www.baseball-reference.com/players/"+id[0]+"/"+id+".shtml"};
@@ -521,9 +533,9 @@ function holeHTML(){
   let s=`<section class="card hole" aria-label="Current hole">
     <div><div class="eyebrow">${esc(holeLabel())}${lim&&!theme?" · "+esc(lim):""}</div>${theme?`<div class="theme">${esc(theme)}</div>`:""}</div>
     <div class="matchup">
-      <div class="who"><div class="lbl">Tee</div><button class="nm cardlink" data-card="${h.a}">${esc(P[h.a][0])}</button><div class="yr">${yrs(h.a)}</div>${peekToggle("a",h.a)}</div>
+      <div class="who"><button class="facebtn" data-card="${h.a}" aria-label="${esc(P[h.a][0])} baseball card">${face(h.a)}</button><div class="lbl">Tee</div><button class="nm cardlink" data-card="${h.a}">${esc(P[h.a][0])}</button><div class="yr">${yrs(h.a)}</div>${peekToggle("a",h.a)}</div>
       <div class="dots" aria-hidden="true">···›</div>
-      <div class="who pin"><div class="lbl"><span class="flag"></span>Pin</div><button class="nm cardlink" data-card="${h.b}">${esc(P[h.b][0])}</button><div class="yr">${yrs(h.b)}</div>${peekToggle("b",h.b)}</div>
+      <div class="who pin"><button class="facebtn" data-card="${h.b}" aria-label="${esc(P[h.b][0])} baseball card">${face(h.b)}</button><div class="lbl"><span class="flag"></span>Pin</div><button class="nm cardlink" data-card="${h.b}">${esc(P[h.b][0])}</button><div class="yr">${yrs(h.b)}</div>${peekToggle("b",h.b)}</div>
     </div>
     ${scoreHTML()}
   </section>`;
@@ -541,7 +553,7 @@ function nowHTML(){
   const h=S.hole,u=cur(),seen=new Set(h.trail.map(x=>x.p));
   const tis=[...PT[u]].sort((x,y)=>T[x][0]-T[y][0]||T[x][1]-T[y][1]),okT=ti=>!h.allow||h.allow[ti],nOk=tis.filter(okT).length;
   const groups=[];for(const ti of tis){const g=groups[groups.length-1];if(g&&g.n===T[ti][1]&&T[ti][0]-T[g.ts[g.ts.length-1]][0]<=1)g.ts.push(ti);else groups.push({n:T[ti][1],ts:[ti]})}
-  let s=`<section class="card now"><div class="row"><div><div class="eyebrow">You're on</div><h2><button class="cardlink" data-card="${u}">${esc(P[u][0])}</button></h2><div class="small muted">${yrs(u)} · ${tis.length} team-season${tis.length===1?"":"s"}${nOk<tis.length?` · ${tis.length-nOk} outside this hole’s limits`:""}</div></div>
+  let s=`<section class="card now"><div class="row"><div class="onwho"><button class="facebtn" data-card="${u}" aria-label="${esc(P[u][0])} baseball card">${face(u,"sm")}</button><div><div class="eyebrow">You're on</div><h2><button class="cardlink" data-card="${u}">${esc(P[u][0])}</button></h2><div class="small muted">${yrs(u)} · ${tis.length} team-season${tis.length===1?"":"s"}${nOk<tis.length?` · ${tis.length-nOk} outside this hole’s limits`:""}</div></div></div>
     <div class="actions"><button class="btn" id="hint">Hint<span class="cost">${h.kind==="range"?"free":"+1"}</span></button><button class="btn" id="back" ${h.trail.length<2?"disabled":""}>Back<span class="cost">${h.kind==="range"?"free":"+1"}</span></button>${h.kind==="range"||h.kind==="tutor"?"":`<button class="btn mull" id="mull" ${h.trail.length<2||!mullLeft()?"disabled":""} title="Take back your last move for free. ${h.kind==="round"?"One for the whole round":"One per hole"}."><span class="mball${mullLeft()?"":" used"}" aria-hidden="true"></span>Mulligan<span class="cost">${mullLeft()?"1 left":"used"}</span></button>`}<button class="btn" id="giveup">${h.kind==="range"||h.kind==="tutor"?"Show me":"Give up"}</button></div></div>
     <div class="tsearch"><input id="tsearch" type="search" placeholder="Search all of ${esc(P[u][0])}'s teammates" value="${esc(S.tq)}" autocomplete="off">${teammateResults(u,seen)}</div>
     <div class="teams">`;
@@ -667,7 +679,7 @@ function searchPlayers(q){q=norm(q.trim());if(q.length<2)return[];const C=custom
 // Baseball cards: stats live in 50 shard files and load only when a card opens.
 const CARDS={};
 function loadCard(i){const k=i%50;if(!CARDS[k])CARDS[k]=fetch("cards/"+k+".json").then(r=>r.json()).catch(e=>{delete CARDS[k];throw e});return CARDS[k].then(d=>d[i]||{})}
-function openCard(i,tab){S.cardP=i;$("#cardov").hidden=false;$("#cardbody").innerHTML=`<div class="bbhead"><div class="bbname">${esc(P[i][0])}</div></div><div class="cload">Pulling the card…</div>`;
+function openCard(i,tab){S.cardP=i;$("#cardov").hidden=false;$("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div></div></div><div class="cload">Pulling the card…</div>`;
   loadCard(i).then(c=>{if(S.cardP===i)renderCard(i,c,tab)}).catch(()=>{$("#cardbody").innerHTML+='<div class="cload">The card did not load. Close it and try again.</div>'})}
 function closeCard(){$("#cardov").hidden=true;S.cardP=null}
 const rate=(n,d,dig=3)=>d>0?(n/d).toFixed(dig).replace(/^0(?=\.)/,""):"—";
@@ -688,7 +700,7 @@ function renderCard(i,c,tab){
     const body=c.p.map(r=>{for(let k=2;k<12;k++)tot[k]+=r[k];return row(r,yr(r[0]))}).join("");
     tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>W</th><th>L</th><th>ERA</th><th>G</th><th>GS</th><th>SV</th><th>IP</th><th>H</th><th>BB</th><th>SO</th><th>WHIP</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career")}</tfoot></table>`}
   const facts=[bio.pos&&["Position",bio.pos],(bio.bats||bio.throws)&&["Bats/Throws",(bio.bats||"?")+"/"+(bio.throws||"?")],(bio.ht||bio.wt)&&["Ht/Wt",[bio.ht,bio.wt&&bio.wt+" lbs"].filter(Boolean).join(", ")],bio.born&&["Born",bio.born],bio.from&&["Hometown",bio.from]].filter(Boolean);
-  $("#cardbody").innerHTML=`<div class="bbhead"><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div></div>
+  $("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div></div></div>
     <div class="bbbio">${facts.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div>
     ${hasB&&hasP?`<div class="bbtabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-ctab="${k}" aria-selected="${tab===k}">${l}</button>`).join("")}</div>`:`<div class="bbtabs single"><span>${tab==="p"?"Pitching":"Batting"}</span></div>`}
     <div class="bbscroll">${table||'<div class="cload">No stats on record.</div>'}</div>
