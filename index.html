@@ -228,10 +228,10 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .bbcard .x{background:var(--cb);border-color:var(--cb-ink);color:var(--cb-ink)}
 .bbhead{background:var(--cb-band);color:var(--cb-on-band);margin:-14px -14px 0;padding:14px 56px 12px 14px;border-radius:4px 4px 0 0;display:flex;align-items:flex-end;gap:12px}
 .face{--sil:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cpath fill='%23a8987a' d='M19 24c0-8 5-13 11-13s11 5 11 13zM38 21h11v3H38zM21 28h18c0 7-4 12-9 12s-9-5-9-12zM8 60c1-10 10-15 22-15s21 5 22 15z'/%3E%3C/svg%3E");
-  display:block;width:60px;height:60px;border:2px solid var(--ink);border-radius:4px;overflow:hidden;background:#e6d8b8 var(--sil) center bottom/100% no-repeat;flex:none}
-.face img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 15%;background:#e6d8b8}
-.face.sm{width:46px;height:46px}
-.face.cardface{width:76px;height:92px;border:3px solid var(--cb-on-band);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.25)}
+  display:block;width:60px;height:90px;border:2px solid var(--ink);border-radius:4px;overflow:hidden;background:#e6d8b8 var(--sil) center bottom/100% no-repeat;flex:none}
+.face img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 0;background:#e6d8b8}
+.face.sm{width:40px;height:60px}
+.face.cardface{width:68px;height:102px;border:3px solid var(--cb-on-band);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.25)}
 .facebtn{padding:0;border:0;background:none;display:inline-block;margin-bottom:6px}
 .who.pin .facebtn{margin-left:auto;display:block;width:max-content}
 .onwho{display:flex;gap:10px;align-items:center}
@@ -270,8 +270,8 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .plaques{display:flex;flex-direction:column;gap:10px}
 .plaque{position:relative;background:linear-gradient(160deg,var(--bronze-hi),var(--bronze) 55%,var(--bronze-line));color:var(--bronze-ink);border:3px solid var(--bronze-line);border-radius:8px;box-shadow:inset 0 0 0 2px var(--bronze-hi),3px 3px 0 var(--shadow);padding:10px 22px;display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:8px 10px}
 .plaque .facebtn{margin:0}
-.face.hall{width:40px;height:48px;border:2px solid var(--bronze-line);box-shadow:0 0 0 1px var(--bronze-hi)}
-.face.hallbig{width:104px;height:126px;border:3px solid var(--bronze-line);box-shadow:0 0 0 2px var(--bronze-hi),3px 3px 0 rgba(0,0,0,.3);margin:4px auto}
+.face.hall{width:36px;height:54px;border:2px solid var(--bronze-line);box-shadow:0 0 0 1px var(--bronze-hi)}
+.face.hallbig{width:96px;height:144px;border:3px solid var(--bronze-line);box-shadow:0 0 0 2px var(--bronze-hi),3px 3px 0 rgba(0,0,0,.3);margin:4px auto}
 .matebtn{grid-column:1/-1;justify-self:start;border:0;background:none;padding:2px 0;color:var(--bronze-ink);font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;text-decoration:none}
 .plaque.first .matebtn{justify-self:center}
 .plaque:not(.first){padding-left:18px;padding-right:18px}
@@ -335,8 +335,8 @@ input,select,textarea{font-size:16px!important}
 .eyebrow,.who .lbl,.score span{font-size:12px}
 .who .yr{font-size:14.5px}
 .who .nm{font-size:clamp(17px,5.2vw,24px)}
-.face{width:72px;height:72px}
-.face.sm{width:56px;height:56px}
+.face{width:64px;height:96px}
+.face.sm{width:48px;height:72px}
 .peekbtn{font-size:13px;padding:8px 0 4px}
 .now h2{font-size:25px}
 .trail .via,.small{font-size:13.5px}
