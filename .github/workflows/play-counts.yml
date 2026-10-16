@@ -1,13 +1,38 @@
 name: Play counts
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "15 5 * * *"
   push:
     paths: [.github/workflows/play-counts.yml]
+permissions:
+  contents: write
 jobs:
   counts:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - run: |
-          for k in players visitors-$(TZ=America/New_York date +%F) daily-1-holed; do
-            echo "$k: $(curl -s https://abacus.jasoncameron.dev/get/dompesca-sepgolf/$k)"
-          done
+          get() { curl -s "https://abacus.jasoncameron.dev/get/dompesca-sepgolf/$1" | python3 -c 'import sys,json
+          try: print(json.load(sys.stdin).get("value",0))
+          except Exception: print(0)'; }
+          {
+            echo "# Play counts"
+            echo
+            echo "Updated $(TZ=America/New_York date '+%b %-d, %Y %-I:%M %p') Eastern."
+            echo
+            echo "- Devices that have ever opened the game: $(get players)"
+            echo
+            echo "| Day | Visitors | Holed the Daily |"
+            echo "|---|---|---|"
+            n=1; d=2026-10-15; today=$(TZ=America/New_York date +%F)
+            while [[ "$d" < "$today" || "$d" == "$today" ]]; do
+              echo "| $d (Daily #$n) | $(get visitors-$d) | $(get daily-$n-holed) |"
+              n=$((n+1)); d=$(date -d "$d +1 day" +%F)
+            done
+          } > COUNTS.md
+          cat COUNTS.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add COUNTS.md
+          git diff --cached --quiet || (git commit -m "Update play counts" && git push)

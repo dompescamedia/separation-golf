@@ -1,3 +1,7 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Separation Golf</title>
 <meta name="description" content="Connect any two big leaguers through their teammates. Fewest jumps wins. A new hole every day.">
 <meta property="og:title" content="Separation Golf">
@@ -59,7 +63,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .seg{flex-basis:100%;background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:2px}
 .seg{display:flex}
-.seg button{flex:1 1 auto;white-space:nowrap;border:0;background:none;padding:7px 4px;border-radius:3px;font-family:var(--mono);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
+.seg button{flex:1 1 0;min-width:0;white-space:nowrap;border:0;background:none;padding:7px 4px;border-radius:3px;font-family:var(--mono);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--green);color:var(--green-ink)}
 .ibtn{height:34px;min-width:34px;border:2px solid var(--ink);border-radius:4px;background:var(--card);padding:0 9px;font-family:var(--mono);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
 .card{background:var(--card);border:2px solid var(--ink);border-radius:6px;box-shadow:4px 4px 0 var(--shadow);padding:16px}
@@ -303,6 +307,60 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .plaque.first .tm{font-size:46px}
 .plaque.first .tm span{font-size:24px}
 .plaque.first .fr{font-size:14px}
+/* App feel on phones: thumb-sized targets, bottom tab bar, no zoom-on-focus, press feedback. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-size:16px;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+button,a,input,select,label{touch-action:manipulation}
+button{-webkit-user-select:none;user-select:none}
+input,select,textarea{font-size:16px!important}
+.ibtn{height:44px;min-width:44px;padding:0 13px;font-size:13.5px}
+.x{width:44px;height:44px;font-size:24px;top:8px;right:8px}
+.btn,.diff button{min-height:48px;padding:11px 16px;font-size:14px}
+.btn .cost{font-size:12px}
+.diff button{min-height:44px;padding:9px 14px}
+.chip{min-width:58px;min-height:44px;padding:9px 12px;font-size:16px}
+.years{gap:8px}
+.team .tn{font-size:15px}
+.tchip{min-height:42px;padding:9px 12px;font-size:14px}
+.yrs select{padding:10px 10px}
+.chk{min-height:40px;font-size:15px}.chk input{width:22px;height:22px}
+.plist{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:62vh}
+.pbtn{padding:10px 12px;min-height:56px}
+.pbtn .pn{font-size:15.5px}.pbtn .py{font-size:13.5px}
+.pwrap .pbtn{padding-right:58px}
+.cardbtn{top:6px;right:6px;padding:6px 7px;font-size:11px}
+.roster input,.tsearch input,.search input,.mfind{padding:12px 12px}
+.sugg button{padding:13px 14px}
+.eyebrow,.who .lbl,.score span{font-size:12px}
+.who .yr{font-size:14.5px}
+.who .nm{font-size:clamp(17px,5.2vw,24px)}
+.face{width:72px;height:72px}
+.face.sm{width:56px;height:56px}
+.peekbtn{font-size:13px;padding:8px 0 4px}
+.now h2{font-size:25px}
+.trail .via,.small{font-size:13.5px}
+.trail .n{width:26px;height:26px;font-size:12.5px}.trail li{grid-template-columns:26px 1fr}.trail li::before{left:12px;top:24px}
+.score b{font-size:32px}
+.sc th,.sc td{height:40px;font-size:15px}
+.mname{padding:7px 10px;font-size:15px}
+.matebtn{padding:10px 0;font-size:13px}
+.arow{padding:12px;font-size:15px}
+.pinopt{padding:12px 14px 12px 32px}.pinopt .pn{font-size:17px}.pinopt .py{font-size:14px}
+.bbtabs button,.bbtabs span{padding:9px 14px;font-size:13px}
+.bbt{font-size:13.5px}
+.btn:active,.ibtn:active,.chip:active,.pbtn:active,.pinopt:active,.tchip:active,.diff button:active{transform:translate(1px,1px)}
+.seg svg{display:none}
+@media (max-width:700px){
+  :root{--bar-h:62px}
+  body{padding-bottom:calc(var(--bar-h) + 28px + env(safe-area-inset-bottom,0px));padding-top:calc(10px + env(safe-area-inset-top,0px))}
+  header{align-items:center}
+  .seg{--bar-bg:var(--card);position:fixed;z-index:15;left:0;right:0;bottom:0;margin:0;border:0;border-top:2px solid var(--ink);border-radius:0;
+    padding:4px max(6px,env(safe-area-inset-left,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-right,0px));gap:4px;box-shadow:0 -3px 0 rgba(0,0,0,.06)}
+  .seg button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:var(--bar-h);padding:6px 2px;border-radius:6px;font-size:11.5px;letter-spacing:.01em}
+  .seg svg{display:block;width:26px;height:26px}
+  .seg button[aria-pressed="true"]{--bar-bg:var(--green)}
+  .toast{bottom:calc(var(--bar-h) + 22px + env(safe-area-inset-bottom,0px))}
+}
 [hidden]{display:none!important}
 footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
 @media (prefers-reduced-motion:no-preference){.roster{animation:drop .16s ease-out}@keyframes drop{from{opacity:.4;transform:translateY(-4px)}}}
@@ -325,11 +383,11 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
       <button class="ibtn" id="openstats">Stats</button>
     </div>
     <div class="seg" role="group" aria-label="Mode">
-        <button id="m-daily" aria-pressed="true">Daily</button>
-        <button id="m-round" aria-pressed="false">Daily 9</button>
-        <button id="m-endless" aria-pressed="false">Endless</button>
-        <button id="m-custom" aria-pressed="false">Custom</button>
-        <button id="m-range" aria-pressed="false">Range</button>
+        <button id="m-daily" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V3l12 4.5L6 12" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Daily</span></button>
+        <button id="m-round" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16" stroke="currentColor" stroke-width="1.6"/></svg><span>Daily 9</span></button>
+        <button id="m-endless" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c-2-3-4-4.5-6-4.5a4.5 4.5 0 0 0 0 9c2 0 4-1.5 6-4.5s4-4.5 6-4.5a4.5 4.5 0 0 1 0 9c-2 0-4-1.5-6-4.5z" fill="none" stroke="currentColor" stroke-width="2.2"/></svg><span>Endless</span></button>
+        <button id="m-custom" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="6" r="2.4" fill="var(--bar-bg)" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="12" r="2.4" fill="var(--bar-bg)" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="18" r="2.4" fill="var(--bar-bg)" stroke="currentColor" stroke-width="2"/></svg><span>Custom</span></button>
+        <button id="m-range" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="8" r="1" fill="currentColor"/><circle cx="13.5" cy="8.5" r="1" fill="currentColor"/><circle cx="11.5" cy="11.5" r="1" fill="currentColor"/><path d="M12 17v4M9 21h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Range</span></button>
     </div>
   </header>
   <main id="main"><div class="card loading">Loading every big-league roster, 1871–2025…</div></main>
