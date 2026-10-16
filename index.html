@@ -402,7 +402,11 @@ const PLAN={};
 // Hand-picked Dailies by date (Eastern): [tee, pin] as player IDs.
 const DAILY_SET={"2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01","ohtansh01"],"2026-10-17":["mayswi01","judgeaa01"],
   "2026-10-18":["jacksre01","bettsmo01"],"2026-10-19":["aaronha01","harpebr03"],"2026-10-20":["koufasa01","troutmi01"],
-  "2026-10-21":["clemero01","sotoju01"],"2026-10-22":["mantlmi01","freemfr01"]};
+  "2026-10-21":["clemero01","sotoju01"],"2026-10-22":["mantlmi01","freemfr01"],"2026-10-23":["willite01","verlaju01"],
+  "2026-10-24":["benchjo01","alonspe01"],"2026-10-25":["brettge01","wittbo02"],"2026-10-26":["musiast01","kershcl01"],
+  "2026-10-27":["schmimi01","schwaky01"],"2026-10-28":["berrayo01","lindofr01"],"2026-10-29":["smithoz01","skenepa01"]};
+// The Archive stays off until there are past Dailies worth replaying (Dom, Oct 2026).
+const SHOW_ARCHIVE=false;
 // Regular Daily: a well-known player from the past tees off, a relevant current player is the pin.
 const pastStar=a=>P[a][2]<2000&&P[a][4]>=22, nowPin=b=>P[b][2]>=2024&&P[b][4]>=12;
 function dailyPlan(d){if(PLAN[d])return PLAN[d];
@@ -537,7 +541,7 @@ function render(){
   if(S.mode==="custom")html+=rangeHTML()+teamsHTML()+customHTML();
   if(S.mode==="tutor"&&S.hole&&S.hole.kind==="tutor")html+=tutorHTML()+holeHTML();
   if(S.mode==="range")html+=`<div class="card"><div class="eyebrow">Practice range</div><div class="small">Short holes, one or two jumps, with well-known players. Nothing is scored and hints are free.</div></div>`;
-  if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div><button class="btn" id="archive">Archive</button></div>`;
+  if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div>${SHOW_ARCHIVE?'<button class="btn" id="archive">Archive</button>':""}</div>`;
   if(S.hole&&S.hole.kind===({daily:"daily",round:"round",endless:"endless",custom:"custom",range:"range"})[S.mode])html+=holeHTML();
   $("#main").innerHTML=html;bind();
 }
@@ -765,7 +769,7 @@ function welcomeHTML(){return`<h2 class="mtitle" id="mtitle">Welcome to Separati
   <p>Get from the <b>tee</b> player to the <b>pin</b> player by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
   <div class="scoring"><b>Eagle</b><span>the shortest route</span><b>Birdie</b><span>one extra jump</span><b>Par</b><span>two extra jumps</span></div>
   <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> per hole (per round in Daily 9). Scores stop at 10.</p>
-  <ul class="small"><li><b>Daily</b> new at midnight Eastern. Missed one? Open the <b>Archive</b>.</li>
+  <ul class="small"><li><b>Daily</b> one hole for everyone, new at midnight Eastern.</li>
   <li><b>Daily 9</b> nine holes, tougher as you go.</li>
   <li><b>Endless</b> choose your next pin, with an optional <b>shot clock</b> (a stroke a minute).</li>
   <li><b>Custom</b> your players, years, teams and direction.</li>
