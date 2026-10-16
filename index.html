@@ -58,6 +58,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .mark{font-family:var(--script);font-weight:400;font-size:clamp(34px,10.5vw,44px);line-height:1;color:var(--red);transform:rotate(-2deg);transform-origin:left bottom}
 .mark small{display:block;font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;transform:rotate(2deg);margin-bottom:2px}
 .mark .byline{color:inherit;text-decoration:none}
+.mark .home{color:inherit;text-decoration:none;display:block}
 .mark .byline:hover,.mark .byline:focus-visible{text-decoration:underline}
 .bat{display:block;width:min(220px,56vw);height:auto;margin-top:2px}
 .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -368,13 +369,13 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
 
 <div class="app">
   <header>
-    <div class="mark"><small><a class="byline" href="https://www.instagram.com/dompescamedia/" target="_blank" rel="noopener">Dom Pesca’s</a></small>Separation Golf
+    <div class="mark"><small><a class="byline" href="https://www.instagram.com/dompescamedia/" target="_blank" rel="noopener">Dom Pesca’s</a></small><a class="home" href="./" id="gohome" aria-label="Separation Golf, back to home">Separation Golf
       <svg class="bat" viewBox="0 0 260 20" aria-hidden="true">
         <circle cx="7" cy="10" r="5.5" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.6"/>
         <path d="M11,8 L104,7.4 C150,6.6 176,2.4 206,2.2 L249,2.2 Q257,2.2 257,10 Q257,17.8 249,17.8 L206,17.8 C176,17.6 150,13.4 104,12.6 L11,12 Z" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round"/>
         <path d="M16,8 L16,12 M22,7.9 L22,12.1 M28,7.9 L28,12.1 M34,7.8 L34,12.2" stroke="var(--ink)" stroke-width="1.2" opacity=".55"/>
         <path d="M150,8.5 C175,6 200,5.4 245,5.6" stroke="var(--ink)" stroke-width="1" fill="none" opacity=".35"/>
-      </svg>
+      </svg></a>
     </div>
     <div class="tools">
       <button class="ibtn" id="openhelp" aria-label="How to play">?</button>
@@ -885,6 +886,7 @@ function bindModal(){const t2=$("#tutor2");if(t2)t2.onclick=()=>{closeModal();st
 $("#mclose").onclick=closeModal;$("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
 addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#modal").hidden)closeModal()});
 $("#openhelp").onclick=()=>openModal(welcomeHTML());
+$("#gohome").onclick=e=>{e.preventDefault();try{sessionStorage.setItem("home","1")}catch(x){}location.href=location.pathname};
 $("#opentutor").onclick=()=>{startTutor();render();window.scrollTo({top:0})};
 $("#openstats").onclick=()=>openModal(statsHTML());
 $("#openhall").onclick=()=>{S.mode="hall";["daily","round","endless","custom","range"].forEach(k=>$("#m-"+k).setAttribute("aria-pressed","false"));render();window.scrollTo({top:0})};
@@ -956,6 +958,7 @@ fetch("data.json").then(r=>r.json()).then(d=>{
   launchReset();countVisit();
   if(!fromHash()){startDaily();render()}
   addEventListener("hashchange",fromHash);
-  if(!store.get("hideWelcome"))openModal(welcomeHTML());
+  let fromHome=false;try{fromHome=sessionStorage.getItem("home")==="1";sessionStorage.removeItem("home")}catch(e){}
+  if(!store.get("hideWelcome")&&!fromHome)openModal(welcomeHTML());
 }).catch(e=>{console.error(e);$("#main").innerHTML='<div class="card loading">The roster data did not load. Reload the page to try again.</div>'});
 </script>
