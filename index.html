@@ -266,6 +266,9 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 /* Hall of Fame */
 .hallhead{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;padding-block:6px}
 .hallhead .eyebrow{letter-spacing:.3em}
+.halltabs{display:flex;gap:4px;margin:6px 0 2px;border:2px solid var(--ink);border-radius:6px;padding:3px;background:var(--card);max-width:100%}
+.halltabs button{flex:1 1 0;border:0;background:none;border-radius:3px;min-height:42px;padding:6px 12px;font-family:var(--mono);font-weight:700;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.halltabs button[aria-selected="true"]{background:var(--green);color:var(--green-ink)}
 .hallhead h2{font-family:var(--script);font-weight:400;color:var(--red);font-size:48px;line-height:1;margin:0}
 .hallhead p{margin:0;max-width:40ch;color:var(--muted);font-size:13.5px}
 .plaques{display:flex;flex-direction:column;gap:10px}
@@ -844,13 +847,26 @@ function hallList(){if(HALL)return HALL;const cnt=new Int32Array(NP),seen=new In
   for(let p=0;p<NP;p++){let n=0;for(const ti of PT[p])for(const q of T[ti][2])if(q!==p&&seen[q]!==p){seen[q]=p;n++}cnt[p]=n}
   const idx=[...Array(NP).keys()].sort((a,b)=>cnt[b]-cnt[a]).slice(0,25);
   return HALL=idx.map(p=>({p,n:cnt[p],fr:new Set(PT[p].map(ti=>T[ti][3])).size}))}
-function hallHTML(){const L=hallList();
-  return`<section class="hallhead"><div class="eyebrow">Separation Golf Hall of Fame</div><h2>The Connectors</h2><p>The 25 players with the most different teammates in big-league history. Every one of them is a great place to jump through.</p></section>
+// Negro Leagues seasons: non-current franchises from 1903 on, except the 1914-15 Federal League.
+const FEDL=new Set(["Baltimore Terrapins","Brooklyn Tip-Tops","Buffalo Blues","Buffalo Buffeds","Chicago Whales","Chicago Chi-Feds","Indianapolis Hoosiers","Kansas City Packers","Newark Pepper","Pittsburgh Rebels","St. Louis Terriers"]);
+const negroTS=ti=>FR[T[ti][3]][1]===0&&T[ti][0]>=1903&&!FEDL.has(TN[T[ti][1]]);
+// The Long Haul: 25 longest MLB careers by years covered (first season to last), ties to more MLB teammates. Negro Leagues seasons left out (Dom, 2026-10-16).
+let IRON=null;
+function ironList(){if(IRON)return IRON;const lo=new Int32Array(NP).fill(9999),hi=new Int32Array(NP),seen=new Int32Array(NP).fill(-1);
+  for(let ti=0;ti<NT;ti++){if(negroTS(ti))continue;const y=T[ti][0];for(const p of T[ti][2]){if(y<lo[p])lo[p]=y;if(y>hi[p])hi[p]=y}}
+  const span=p=>hi[p]?hi[p]-lo[p]+1:0,mates=p=>{let n=0;for(const ti of PT[p])if(!negroTS(ti))for(const q of T[ti][2])if(q!==p&&seen[q]!==p){seen[q]=p;n++}return n};
+  return IRON=[...Array(NP).keys()].filter(p=>span(p)>=24).map(p=>({p,y:span(p),lo:lo[p],hi:hi[p],n:mates(p)})).sort((a,b)=>b.y-a.y||b.n-a.n).slice(0,25)}
+function hallTabs(){const t=S.hallTab||"conn";return`<div class="halltabs" role="tablist">${[["conn","The Connectors"],["iron","The Long Haul"]].map(([k,l])=>`<button role="tab" data-htab="${k}" aria-selected="${t===k}">${l}</button>`).join("")}</div>`}
+function hallHTML(){if(S.hallTab==="iron")return ironHTML();const L=hallList();
+  return`<section class="hallhead"><div class="eyebrow">Separation Golf Hall of Fame</div>${hallTabs()}<h2>The Connectors</h2><p>The 25 players with the most different teammates in big-league history. Every one of them is a great place to jump through.</p></section>
   <div class="plaques">${L.map((x,i)=>`<article class="plaque${i===0?" first":""}"><div class="rk">${i===0?'<span class="goat" role="img" aria-label="GOAT">🐐</span>No. 1':i+1}</div><button class="facebtn" data-card="${x.p}" aria-label="${esc(P[x.p][0])} baseball card">${face(x.p,i===0?"hallbig":"hall")}</button><div class="who2"><div class="pn"><button class="cardlink" data-card="${x.p}">${esc(P[x.p][0])}</button></div><div class="py">${yrs(x.p)}</div></div><div class="stat"><div class="tm">${x.n} <span>teammates</span></div><div class="fr">${x.fr} franchises</div></div>${mateToggle(x.p)}</article>`).join("")}</div>`}
+function ironHTML(){const L=ironList();
+  return`<section class="hallhead"><div class="eyebrow">Separation Golf Hall of Fame</div>${hallTabs()}<h2>The Long Haul</h2><p>The 25 longest big-league careers, first season to last. Lifers, journeymen and a few who came back for one more at-bat.</p></section>
+  <div class="plaques">${L.map((x,i)=>`<article class="plaque${i===0?" first":""}"><div class="rk">${i===0?'<span class="goat" role="img" aria-label="GOAT">🐐</span>No. 1':i+1}</div><button class="facebtn" data-card="${x.p}" aria-label="${esc(P[x.p][0])} baseball card">${face(x.p,i===0?"hallbig":"hall")}</button><div class="who2"><div class="pn"><button class="cardlink" data-card="${x.p}">${esc(P[x.p][0])}</button></div><div class="py">${x.lo}–${x.hi}</div></div><div class="stat"><div class="tm">${x.y} <span>years</span></div><div class="fr">${x.n} teammates</div></div>${mateToggle(x.p,"teams")}</article>`).join("")}</div>`}
 // Teammate cheat sheet: every season the player played, with that roster A to Z, as the game shows it.
-function mateToggle(p){const open=S.hallOpen.has(p);
-  return`<button class="matebtn" data-hopen="${p}" aria-expanded="${open}">${open?"Hide":"Show"} teammates <span aria-hidden="true">${open?"▴":"▾"}</span></button>${open?matesHTML(p):""}`}
-function matesHTML(p){const q=norm((S.hallQ[p]||"").trim()),tis=[...PT[p]].sort((x,y)=>T[x][0]-T[y][0]||T[x][1]-T[y][1]),open=S.hallT[p];
+function mateToggle(p,word){const open=S.hallOpen.has(p);
+  return`<button class="matebtn" data-hopen="${p}" aria-expanded="${open}">${open?"Hide":"Show"} ${word||"teammates"} <span aria-hidden="true">${open?"▴":"▾"}</span></button>${open?matesHTML(p):""}`}
+function matesHTML(p){const q=norm((S.hallQ[p]||"").trim()),tis=[...PT[p]].filter(ti=>S.hallTab!=="iron"||!negroTS(ti)).sort((x,y)=>T[x][0]-T[y][0]||T[x][1]-T[y][1]),open=S.hallT[p];
   const roster=(ti,ps)=>{ps.sort((x,y)=>P[x][6].localeCompare(P[y][6]));const age=ageIn(p,ti);
     return`<div class="mseason"><div class="mst">${esc(tname(ti))}${age?` <span>· age ${age}</span>`:""} <span>· ${ps.length} teammate${ps.length===1?"":"s"}</span></div><div class="mnames">${ps.map(v=>`<button class="mname" data-card="${v}">${esc(P[v][0])}</button>`).join("")}</div></div>`};
   let body="";
@@ -861,6 +877,7 @@ function matesHTML(p){const q=norm((S.hallQ[p]||"").trim()),tis=[...PT[p]].sort(
   return`<div class="mates"><input class="mfind" id="hq-${p}" data-hq="${p}" type="search" placeholder="Find a teammate of ${esc(P[p][0])}" value="${esc(S.hallQ[p]||"")}" autocomplete="off">
     ${q.length>=2?"":`<div class="small">Tap a season to see that roster.</div>`}${body}</div>`}
 function bindHall(){bindCards();
+  document.querySelectorAll("[data-htab]").forEach(b=>b.onclick=()=>{S.hallTab=b.dataset.htab;render();window.scrollTo({top:0})});
   document.querySelectorAll("[data-hopen]").forEach(b=>b.onclick=()=>{const p=+b.dataset.hopen;S.hallOpen.has(p)?S.hallOpen.delete(p):S.hallOpen.add(p);render()});
   document.querySelectorAll("[data-hseason]").forEach(b=>b.onclick=()=>{const[p,ti]=b.dataset.hseason.split(":").map(Number);S.hallT[p]=S.hallT[p]===ti?-1:ti;render()});
   document.querySelectorAll("[data-hq]").forEach(inp=>inp.oninput=()=>keepFocus(inp.id,()=>S.hallQ[+inp.dataset.hq]=inp.value))}
