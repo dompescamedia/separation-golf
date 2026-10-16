@@ -606,7 +606,7 @@ function hint(){const h=S.hole;if(h.done)return;const u=cur(),du=h.distT[u];
 // Mulligan: take back the last move for free. One per hole, or one for the whole Daily 9.
 const roundMull=d=>store.get("mull:"+d);
 const mullLeft=()=>{const h=S.hole;return h.kind==="round"?!roundMull(h.meta.date):!h.mullUsed};
-function mulligan(){const h=S.hole;if(h.done||h.trail.length<2||!mullLeft())return;
+function mulligan(){const h=S.hole;if(h.kind==="daily"||h.done||h.trail.length<2||!mullLeft())return;
   h.trail.pop();bump(h,-1);h.mullUsed=true;if(h.kind==="round")store.set("mull:"+h.meta.date,{i:h.meta.idx});
   S.open=-1;h.hintTeam=-1;save();render();toast("Mulligan taken. That move never happened")}
 function giveUp(){finish(true);save();render()}
@@ -689,7 +689,7 @@ function nowHTML(){
   const tis=[...PT[u]].sort((x,y)=>T[x][0]-T[y][0]||T[x][1]-T[y][1]),okT=ti=>!h.allow||h.allow[ti],nOk=tis.filter(okT).length;
   const groups=[];for(const ti of tis){const g=groups[groups.length-1];if(g&&g.n===T[ti][1]&&T[ti][0]-T[g.ts[g.ts.length-1]][0]<=1)g.ts.push(ti);else groups.push({n:T[ti][1],ts:[ti]})}
   let s=`<section class="card now"><div class="row"><div class="onwho"><button class="facebtn" data-card="${u}" aria-label="${esc(P[u][0])} baseball card">${face(u,"sm")}</button><div><div class="eyebrow">You're on</div><h2><button class="cardlink" data-card="${u}">${esc(P[u][0])}</button></h2><div class="small muted">${yrs(u)} · ${tis.length} team-season${tis.length===1?"":"s"}${nOk<tis.length?` · ${tis.length-nOk} outside this hole’s limits`:""}</div></div></div>
-    <div class="actions"><button class="btn" id="hint">Hint<span class="cost">${h.kind==="range"?"free":"+1"}</span></button><button class="btn" id="back" ${h.trail.length<2?"disabled":""}>Back<span class="cost">${h.kind==="range"?"free":"+1"}</span></button>${h.kind==="range"||h.kind==="tutor"?"":`<button class="btn mull" id="mull" ${h.trail.length<2||!mullLeft()?"disabled":""} title="Take back your last move for free. ${h.kind==="round"?"One for the whole round":"One per hole"}."><span class="mball${mullLeft()?"":" used"}" aria-hidden="true"></span>Mulligan<span class="cost">${mullLeft()?"1 left":"used"}</span></button>`}<button class="btn" id="giveup">${h.kind==="range"||h.kind==="tutor"?"Show me":"Give up"}</button></div></div>
+    <div class="actions"><button class="btn" id="hint">Hint<span class="cost">${h.kind==="range"?"free":"+1"}</span></button><button class="btn" id="back" ${h.trail.length<2?"disabled":""}>Back<span class="cost">${h.kind==="range"?"free":"+1"}</span></button>${h.kind==="range"||h.kind==="tutor"||h.kind==="daily"?"":`<button class="btn mull" id="mull" ${h.trail.length<2||!mullLeft()?"disabled":""} title="Take back your last move for free. ${h.kind==="round"?"One for the whole round":"One per hole"}."><span class="mball${mullLeft()?"":" used"}" aria-hidden="true"></span>Mulligan<span class="cost">${mullLeft()?"1 left":"used"}</span></button>`}<button class="btn" id="giveup">${h.kind==="range"||h.kind==="tutor"?"Show me":"Give up"}</button></div></div>
     <div class="tsearch"><input id="tsearch" type="search" placeholder="Search all of ${esc(P[u][0])}'s teammates" value="${esc(S.tq)}" autocomplete="off">${teammateResults(u,seen)}</div>
     <div class="teams">`;
   for(const g of groups){
@@ -902,7 +902,7 @@ function hardHTML(){return`<h2 class="mtitle" id="mtitle">Hard mode</h2>
 function welcomeHTML(){return`<h2 class="mtitle wt" id="mtitle">Welcome to Separation Golf</h2>
   <p>Get from the <b>tee</b> player to the <b>pin</b> by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
   <div class="scoring row3"><div><b>Eagle</b><span>shortest route</span></div><div><b>Birdie</b><span>+1 jump</span></div><div><b>Par</b><span>+2 jumps</span></div></div>
-  <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> a hole. Scores stop at 10.</p>
+  <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> a hole (not on the Daily). Scores stop at 10.</p>
   <ul class="small tight"><li><b>Daily</b> one hole for everyone, new at midnight ET. <b>Hard mode</b> and the <b>Archive</b> are on the Daily bar.</li>
   <li><b>Daily 9</b> nine holes, tougher as you go.</li>
   <li><b>Endless</b> pick your next pin. <b>Custom</b> set the players, years and teams. <b>Range</b> practice, no score.</li></ul>
