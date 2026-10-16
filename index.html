@@ -213,6 +213,11 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .tile{border:1.5px solid var(--ink);border-radius:4px;text-align:center;padding:8px 2px}
 .tile b{display:block;font-size:24px;font-variant-numeric:lining-nums tabular-nums}
 .tile span{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mtitle.wt{font-size:32px}
+.scoring.row3{grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.scoring.row3 div{border:1.5px solid var(--ink);border-radius:4px;padding:4px 2px}
+.scoring.row3 span{display:block;font-size:12.5px;color:var(--muted)}
+.sheet ul.tight{gap:3px}
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 8px;align-items:center;font-size:13px;font-variant-numeric:lining-nums}
 .bar{height:12px;background:var(--ink);border-radius:2px;min-width:3px}
 .toast{position:fixed;z-index:30;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:13px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
@@ -374,7 +379,9 @@ input,select,textarea{font-size:16px!important}
 .hardsw input:checked+.trk{background:var(--red);border-color:var(--red)}
 .hardsw input:checked+.trk .knb{transform:translateX(18px);background:#f8f0dc}
 .hardsw.on{color:var(--red)}
-.hardsw input:disabled+.trk{opacity:.55}.hardsw:has(input:disabled){cursor:default}
+.hardsw.locked .trk{opacity:.55}
+.hardrow{display:flex;align-items:center;gap:8px}
+.qbtn{width:30px;height:30px;border:2px solid var(--ink);border-radius:50%;background:var(--card);font-family:var(--mono);font-weight:700;font-size:14px;line-height:1;padding:0;flex:none}
 .hardsw input:focus-visible+.trk{outline:2px solid var(--pin);outline-offset:2px}
 body.hardon .cardbtn{display:none}
 body.hardon .pwrap .pbtn{padding-right:12px}
@@ -644,7 +651,7 @@ function render(){
   if(S.mode==="custom")html+=rangeHTML()+teamsHTML()+customHTML();
   if(S.mode==="tutor"&&S.hole&&S.hole.kind==="tutor")html+=tutorHTML()+holeHTML();
   if(S.mode==="range")html+=`<div class="card"><div class="eyebrow">Practice range</div><div class="small">Short holes, one or two jumps, with well-known players. Nothing is scored and hints are free.</div></div>`;
-  if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="dleft"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div><label class="hardsw${S.hole.hard?" on":""}"><input type="checkbox" role="switch" id="hardtog" ${S.hole.hard?"checked":""} ${hardLocked(S.hole)?"disabled":""}><span class="trk"><span class="knb"></span></span><span class="hl">Hard mode</span></label></div>${SHOW_ARCHIVE?'<button class="btn" id="archive">Archive</button>':""}</div>`;
+  if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="dleft"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div><div class="hardrow"><label class="hardsw${S.hole.hard?" on":""}${hardLocked(S.hole)?" locked":""}"><input type="checkbox" role="switch" id="hardtog" ${S.hole.hard?"checked":""}><span class="trk"><span class="knb"></span></span><span class="hl">Hard mode</span></label><button class="qbtn" id="hardhelp" aria-label="What is Hard mode?">?</button></div></div>${SHOW_ARCHIVE?'<button class="btn" id="archive">Archive</button>':""}</div>`;
   if(S.hole&&S.hole.kind===({daily:"daily",round:"round",endless:"endless",custom:"custom",range:"range"})[S.mode])html+=holeHTML();
   $("#main").innerHTML=html;bind();
 }
@@ -885,17 +892,22 @@ function bindHall(){bindCards();
 // Welcome / how to play, and stats
 function openModal(html){$("#mbody").innerHTML=html;$("#modal").hidden=false;$("#mclose").focus();bindModal()}
 function closeModal(){$("#modal").hidden=true}
-function welcomeHTML(){return`<h2 class="mtitle" id="mtitle">Welcome to Separation Golf</h2>
-  <p>Get from the <b>tee</b> player to the <b>pin</b> player by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
-  <div class="scoring"><b>Eagle</b><span>the shortest route</span><b>Birdie</b><span>one extra jump</span><b>Par</b><span>two extra jumps</span></div>
-  <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> per hole (per round in Daily 9). Scores stop at 10.</p>
-  <ul class="small"><li><b>Daily</b> one hole for everyone, new at midnight Eastern. Flip on <b>Hard mode</b> to play without teammate cards.</li>
+function hardHTML(){return`<h2 class="mtitle" id="mtitle">Hard mode</h2>
+  <p>For the Daily. Only the <b>tee</b> and <b>pin</b> baseball cards open, so you can't look up where everyone else played. You have to know your guys.</p>
+  <ul class="small"><li>Flip it on before your first move. After that it's locked for the day.</li>
+  <li>Scoring and par don't change.</li>
+  <li>Your share says <b>Hard mode 🔥</b> so your friends know.</li>
+  <li>It stays on for tomorrow's Daily until you turn it off.</li></ul>
+  <div class="actions"><button class="btn primary" id="playball">Got it</button></div>`}
+function welcomeHTML(){return`<h2 class="mtitle wt" id="mtitle">Welcome to Separation Golf</h2>
+  <p>Get from the <b>tee</b> player to the <b>pin</b> by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
+  <div class="scoring row3"><div><b>Eagle</b><span>shortest route</span></div><div><b>Birdie</b><span>+1 jump</span></div><div><b>Par</b><span>+2 jumps</span></div></div>
+  <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> a hole. Scores stop at 10.</p>
+  <ul class="small tight"><li><b>Daily</b> one hole for everyone, new at midnight ET. <b>Hard mode</b> and the <b>Archive</b> are on the Daily bar.</li>
   <li><b>Daily 9</b> nine holes, tougher as you go.</li>
-  <li><b>Endless</b> choose your next pin, with an optional <b>shot clock</b> (a stroke a minute).</li>
-  <li><b>Custom</b> your players, years, teams and direction.</li>
-  <li><b>Range</b> practice holes, nothing scored.</li></ul>
-  <p class="small">Tap any name for his baseball card. <b>Challenge a friend</b> sends your score to beat.</p>
-  <div class="actions"><button class="btn primary" id="playball">Play ball</button><button class="btn" id="tutor2">Take the tutorial</button></div>
+  <li><b>Endless</b> pick your next pin. <b>Custom</b> set the players, years and teams. <b>Range</b> practice, no score.</li></ul>
+  <p class="small">Tap a name or photo for his baseball card. The <b>HOF</b> has the biggest connectors and longest careers. Tap the logo to get home.</p>
+  <div class="actions"><button class="btn primary" id="playball">Play ball</button><button class="btn" id="tutor2">Tutorial</button></div>
   <label class="small chk"><input type="checkbox" id="nowelcome" ${store.get("hideWelcome")?"checked":""}> Don't show this when I open the game</label>`}
 function statsHTML(){
   const recs=[],rounds={};
@@ -948,7 +960,8 @@ function bind(){bindCards();
   on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
   on("toround",()=>setMode("round"));
   on("tutdaily",()=>setMode("daily"));on("tutrange",()=>setMode("range"));
-  const ht=$("#hardtog");if(ht)ht.onchange=()=>{const h=S.hole;if(hardLocked(h)){ht.checked=h.hard;return}h.hard=ht.checked;store.set("hardPref",h.hard);save();render();toast(h.hard?"Hard mode: only the tee and pin cards open":"Hard mode off")};
+  on("hardhelp",()=>openModal(hardHTML()));
+  const ht=$("#hardtog");if(ht)ht.onchange=()=>{const h=S.hole;if(hardLocked(h)){ht.checked=h.hard;toast(h.done?"Hard mode is picked before you tee off. Try it on tomorrow's Daily.":"Hard mode can't change once you've made a move.");return}h.hard=ht.checked;store.set("hardPref",h.hard);save();render();toast(h.hard?"Hard mode: only the tee and pin cards open":"Hard mode off")};
   on("nextball",()=>{startRange();render();window.scrollTo({top:0,behavior:"smooth"})});
   on("archive",()=>openModal(archiveHTML()));
   document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const pk=S.hole.pick,o=pk.opts[+b.dataset.pin];newHole(pk.a,o.b,"endless",{diff:S.diff},{...S.range},null,"keep");render();window.scrollTo({top:0,behavior:"smooth"})});
