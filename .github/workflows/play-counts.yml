@@ -1,0 +1,13 @@
+name: Play counts
+on:
+  workflow_dispatch:
+  push:
+    paths: [.github/workflows/play-counts.yml]
+jobs:
+  counts:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for k in players visitors-$(TZ=America/New_York date +%F) daily-1-holed; do
+            echo "$k: $(curl -s https://abacus.jasoncameron.dev/get/dompesca-sepgolf/$k)"
+          done

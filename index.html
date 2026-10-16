@@ -333,7 +333,7 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
     </div>
   </header>
   <main id="main"><div class="card loading">Loading every big-league roster, 1871–2025…</div></main>
-  <footer>Rosters from the Lahman Baseball Database, 1871–2025 seasons.</footer>
+  <footer>Fan-made, not affiliated with Major League Baseball. Rosters from the Lahman Baseball Database, 1871–2025 seasons.</footer>
 </div>
 <div class="modal" id="modal" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="mtitle"><button class="x" id="mclose" aria-label="Close">×</button><div class="stack" id="mbody"></div></div></div>
 <div class="modal" id="cardov" hidden><div class="bbcard" role="dialog" aria-modal="true" aria-label="Baseball card"><button class="x" id="cardclose" aria-label="Close card">×</button><div id="cardbody"></div></div></div>
@@ -412,11 +412,16 @@ const DAILY_SET={"2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01",
   "2026-10-18":["jacksre01","bettsmo01"],"2026-10-19":["aaronha01","harpebr03"],"2026-10-20":["koufasa01","troutmi01"],
   "2026-10-21":["clemero01","sotoju01"],"2026-10-22":["mantlmi01","freemfr01"],"2026-10-23":["willite01","verlaju01"],
   "2026-10-24":["benchjo01","alonspe01"],"2026-10-25":["brettge01","wittbo02"],"2026-10-26":["musiast01","kershcl01"],
-  "2026-10-27":["schmimi01","schwaky01"],"2026-10-28":["berrayo01","lindofr01"],"2026-10-29":["smithoz01","skenepa01"]};
+  "2026-10-27":["schmimi01","schwaky01"],"2026-10-28":["berrayo01","lindofr01"],"2026-10-29":["smithoz01","skenepa01"],
+  "2026-10-30":["yastrca01","altuvjo01"],"2026-10-31":["dimagjo01","acunaro01"],"2026-11-01":["seaveto01","degroja01"],
+  "2026-11-02":["robinfr02","machama01"],"2026-11-03":["bankser01","yelicch01"],"2026-11-04":["kalinal01","skubata01"],
+  "2026-11-05":["carewro01","stantmi03"],"2026-11-06":["robinbr01","hendegu01"],"2026-11-07":["carltst01","scherma01"],
+  "2026-11-08":["morgajo02","ramirjo01"],"2026-11-09":["fiskca01","bogaexa01"],"2026-11-10":["killeha01","seageco01"],
+  "2026-11-11":["spahnwa01","salech01"],"2026-11-12":["camparo01","rodriju01"]};
 // The Archive stays off until there are past Dailies worth replaying (Dom, Oct 2026).
 const SHOW_ARCHIVE=false;
 // Regular Daily: a well-known player from the past tees off, a relevant current player is the pin.
-const pastStar=a=>P[a][2]<2000&&P[a][4]>=22, nowPin=b=>P[b][2]>=2024&&P[b][4]>=12;
+const pastStar=a=>P[a][2]<2000&&P[a][4]>=40, nowPin=b=>P[b][2]>=2024&&P[b][4]>=18;
 function dailyPlan(d){if(PLAN[d])return PLAN[d];
   const rng=rngFrom("sepgolf:"+d),sp=SPECIALS[d.slice(5)],set=DAILY_SET[d];
   let plan=null;
@@ -427,10 +432,13 @@ function dailyPlan(d){if(PLAN[d])return PLAN[d];
 const ROUND_BANDS=[[2,2],[3,3],[3,4],[2,3],[4,5],[3,3],[3,4],[4,5],[5,6]];
 // Daily 9: tee is a solid 1970s player (a pre-1970 legend only on holes 5 and 9); pin is a 2000s star or a decent player who finished in 2010 or later.
 const played70s=i=>PT[i].some(ti=>T[ti][0]>=1970&&T[ti][0]<=1979);
-const roundTee=(i,legends)=>(played70s(i)&&P[i][4]>=10)||(legends&&P[i][2]<1970&&P[i][4]>=50);
-const roundPin=i=>(P[i][2]>=2000&&P[i][2]<=2009&&P[i][4]>=20)||(P[i][2]>=2010&&P[i][4]>=7);
+// Daily 9: well-known All-Stars from the 1970s tee off (true legends allowed on holes 5 and 9); the pin played recently.
+const roundTee=(i,legends)=>(played70s(i)&&P[i][4]>=18)||(legends&&P[i][2]<1970&&P[i][4]>=50);
+const roundPin=i=>P[i][2]>=2018&&P[i][4]>=14;
 function roundPlan(d,i){const k=d+":"+i;if(PLAN[k])return PLAN[k];const [lo,hi]=ROUND_BANDS[i];
-  return PLAN[k]={pair:pickPair(rngFrom("round2:"+k),{lo,hi,teeOk:p=>roundTee(p,i===4||i===8),pinOk:roundPin}),C:null}}
+  // No player appears twice in a day's Daily 9 or in that day's Daily.
+  const used=new Set(dailyPlan(d).pair);for(let j=0;j<i;j++)roundPlan(d,j).pair.forEach(x=>used.add(x));
+  return PLAN[k]={pair:pickPair(rngFrom("round2:"+k),{lo,hi,teeOk:p=>!used.has(p)&&roundTee(p,i===4||i===8),pinOk:p=>!used.has(p)&&roundPin(p)}),C:null}}
 const DIFFS={easy:{label:"Easy",lo:2,hi:2},medium:{label:"Medium",lo:3,hi:3},hard:{label:"Hard",lo:4,hi:5},legend:{label:"Legend",lo:6,hi:12}};
 const PRESETS=[["All time",MINY,MAXY],["Since 2000",2000,MAXY],["1980–2025",1980,MAXY],["1950–1999",1950,1999],["Before 1950",MINY,1949]];
 const S={hallOpen:new Set(),hallQ:{},hallT:{},clockOn:!!store.get("clock"),dir:store.get("dir")==="young"?"young":"old",mode:"daily",hole:null,open:-1,filter:"",tq:"",peek:{},diff:"medium",tally:{holes:0,over:0},rd:null,
@@ -516,7 +524,14 @@ function mulligan(){const h=S.hole;if(h.done||h.trail.length<2||!mullLeft())retu
   h.trail.pop();bump(h,-1);h.mullUsed=true;if(h.kind==="round")store.set("mull:"+h.meta.date,{i:h.meta.idx});
   S.open=-1;h.hintTeam=-1;save();render();toast("Mulligan taken. That move never happened")}
 function giveUp(){finish(true);save();render()}
-function finish(gave){const h=S.hole;h.done=true;if(h.clock)h.clock.end=Date.now();h.gaveUp=gave;if(h.kind==="endless"){S.tally.holes++;S.tally.over+=gave?2:(h.strokes-h.par)}}
+// One-time wipe of games saved before launch night, so every phone starts at Daily #1.
+function launchReset(){if(store.get("launch1"))return;
+  try{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^(daily|round|mull):/.test(k))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k))}catch(e){}
+  store.set("launch1",1)}
+// Anonymous play counts (no account, no personal data): abacus.jasoncameron.dev/get/dompesca-sepgolf/<key>
+function ping(k){try{fetch("https://abacus.jasoncameron.dev/hit/dompesca-sepgolf/"+k,{mode:"no-cors",keepalive:true}).catch(()=>{})}catch(e){}}
+function countVisit(){const d=etDate();if(!store.get("player"))store.set("player",1),ping("players");if(store.get("seen")!==d)store.set("seen",d),ping("visitors-"+d)}
+function finish(gave){const h=S.hole;h.done=true;if(h.kind==="daily"&&!h.meta.late&&!gave)ping("daily-"+h.meta.n+"-holed");if(h.clock)h.clock.end=Date.now();h.gaveUp=gave;if(h.kind==="endless"){S.tally.holes++;S.tally.over+=gave?2:(h.strokes-h.par)}}
 
 function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Albatross","-2":"Eagle","-1":"Birdie","0":"Par","1":"Bogey","2":"Double bogey","3":"Triple bogey"})[rel]||"+"+rel}
 const sym=r=>!r||!r.done?"·":r.gaveUp?"❌":(r.strokes-r.par<=-2?"🦅":r.strokes-r.par===-1?"🐦":r.strokes-r.par===0?"⚪":r.strokes-r.par===1?"🟧":"🟥");
@@ -644,7 +659,10 @@ function resultHTML(){
 }
 function challengeLink(){const h=S.hole,C=h.C;let l=BASE_URL+"#ch."+P[h.a][3]+"."+P[h.b][3];
   if(C&&C.strict&&!allYears(C))l+=".y"+C.from+"-"+C.to;if(C&&C.fr&&C.fr.length)l+=".t"+C.fr.join("-");
-  if(h.done&&!h.gaveUp)l+=".r"+h.strokes+"-"+h.trail.slice(1).map(st=>P[st.p][3]).join("-");return l}
+  if(h.done&&!h.gaveUp)l+=".r"+h.strokes+"-"+h.trail.slice(1).map(st=>scr(P[st.p][3],1)).join("-");return l}
+// Light scramble so a friend can't read your route in the link before they play.
+const SCA="abcdefghijklmnopqrstuvwxyz0123456789";
+const scr=(id,dir)=>[...id].map((c,i)=>{const k=SCA.indexOf(c);return k<0?c:SCA[(k+dir*(i*7+5)+36*9)%36]}).join("");
 function challengeMsg(){const h=S.hole,me=h.done&&!h.gaveUp;
   return (me?`I got ${P[h.a][0]} to ${P[h.b][0]} in ${h.strokes}. Beat me. Par ${h.par}.`:`Can you connect ${P[h.a][0]} to ${P[h.b][0]}? Par ${h.par}.`)+"\n"+challengeLink()}
 // Rebuild a rival's route from player ids, finding a shared season for each jump.
@@ -866,7 +884,7 @@ function setMode(m){S.mode=m;
 function fromHash(){const m=location.hash.match(/^#ch\.([a-z0-9]+)\.([a-z0-9]+)((?:\.[a-z0-9-]+)*)$/i);if(!m)return false;
   const a=ID2.get(m[1]),b=ID2.get(m[2]);if(a==null||b==null||a===b)return false;
   let C=null,rival=null;for(const seg of m[3].split(".").filter(Boolean)){const y=seg.match(/^y(\d{4})-(\d{4})$/),t=seg.match(/^t([\d-]+)$/),r=seg.match(/^r(\d+)-([a-z0-9-]+)$/i);
-    if(r){const ids=r[2].split("-").map(x=>ID2.get(x));if(ids.length&&ids.every(x=>x!=null)&&ids[ids.length-1]===b)rival={strokes:+r[1],ids}}
+    if(r){let ids=r[2].split("-").map(x=>ID2.get(scr(x,-1)));if(ids.some(x=>x==null))ids=r[2].split("-").map(x=>ID2.get(x));if(ids.length&&ids.every(x=>x!=null)&&ids[ids.length-1]===b)rival={strokes:+r[1],ids}}
     if(y){C=C||{from:MINY,to:MAXY,strict:true};C.from=+y[1];C.to=+y[2]}
     if(t){C=C||{from:MINY,to:MAXY,strict:true};C.fr=t[1].split("-").map(Number).filter(n=>n<FR.length)}}
   S.mode="custom";S.custom.a=a;S.custom.b=b;if(C&&C.fr){S.custom.teamOn=true;S.custom.fr=[...C.fr]}
@@ -877,6 +895,7 @@ fetch("data.json").then(r=>r.json()).then(d=>{
   P=d.players;TN=d.teamNames;T=d.teams;FR=d.franchises;NP=P.length;NT=T.length;
   PT=Array.from({length:NP},()=>[]);T.forEach((t,i)=>t[2].forEach(p=>PT[p].push(i)));
   ID2=new Map(P.map((p,i)=>[p[3],i]));
+  launchReset();countVisit();
   if(!fromHash()){startDaily();render()}
   addEventListener("hashchange",fromHash);
   if(!store.get("hideWelcome"))openModal(welcomeHTML());
