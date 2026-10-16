@@ -1,0 +1,820 @@
+<title>Separation Golf</title>
+<meta name="description" content="Connect any two big leaguers through their teammates. Fewest jumps wins. A new hole every day.">
+<meta property="og:title" content="Separation Golf">
+<meta property="og:description" content="Connect any two big leaguers through their teammates. Fewest jumps wins.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://dompescamedia.github.io/separation-golf/">
+<meta property="og:image" content="https://dompescamedia.github.io/separation-golf/og-image.png">
+<meta name="twitter:image" content="https://dompescamedia.github.io/separation-golf/og-image.png">
+<link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1d2a44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sep Golf">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Graduate&family=Bitter:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* Layout: a 1950s ballpark scorecard. One narrow column of printed cards with offset ink shadows: hole card, your route, then the current player's team-seasons as year chips that open rosters inline. */
+:root{
+  --bg:#ede1c6; --card:#f8f0dc; --ink:#1d2a44; --muted:#6d6450; --line:#c9b68e;
+  --green:#1d2a44; --green-ink:#f8f0dc; --fair:#e4d3a9; --pin:#d4951c; --pin-soft:#f4dfa6; --bad:#b0302a; --red:#b0302a; --shadow:#1d2a44;
+  --wood:#c4843a; --scrim:rgba(29,42,68,.5); --cb:#ece0c2; --cb-row:#e0cfa6; --cb-edge:#1d2a44; --cb-ink:#2a2116; --cb-band:#b0302a; --cb-on-band:#f8f0dc; --cb-gold:#f2c94c; --bronze:#7a4f26; --bronze-hi:#b9844a; --bronze-ink:#f7e6c4; --bronze-line:#4a2f15;
+  --script:"Yellowtail","Brush Script MT",cursive;
+  --display:"Graduate","Rockwell","Courier New",serif;
+  --body:"Bitter",Georgia,"Times New Roman",serif;
+  --mono:"Courier Prime","Courier New",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111a2c; --card:#1a2540; --ink:#f1e4c6; --muted:#a99f88; --line:#34425f;
+  --green:#f1e4c6; --green-ink:#111a2c; --fair:#26324f; --pin:#efb43a; --pin-soft:#3c3318; --bad:#e86a5e; --red:#e86a5e; --shadow:#05080f;
+  --wood:#d39a52; --scrim:rgba(0,0,0,.65); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111a2c; --card:#1a2540; --ink:#f1e4c6; --muted:#a99f88; --line:#34425f;
+  --green:#f1e4c6; --green-ink:#111a2c; --fair:#26324f; --pin:#efb43a; --pin-soft:#3c3318; --bad:#e86a5e; --red:#e86a5e; --shadow:#05080f;
+  --wood:#d39a52; --scrim:rgba(0,0,0,.65); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 48px}
+.app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+#main{display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--pin);outline-offset:2px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 8px;flex-wrap:wrap}
+.mark{font-family:var(--script);font-weight:400;font-size:clamp(34px,10.5vw,44px);line-height:1;color:var(--red);transform:rotate(-2deg);transform-origin:left bottom}
+.mark small{display:block;font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;transform:rotate(2deg);margin-bottom:2px}
+.bat{display:block;width:min(220px,56vw);height:auto;margin-top:2px}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{flex-basis:100%;background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:2px}
+.seg{display:flex}
+.seg button{flex:1 1 auto;white-space:nowrap;border:0;background:none;padding:7px 4px;border-radius:3px;font-family:var(--mono);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--green);color:var(--green-ink)}
+.ibtn{height:34px;min-width:34px;border:2px solid var(--ink);border-radius:4px;background:var(--card);padding:0 9px;font-family:var(--mono);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:2px solid var(--ink);border-radius:6px;box-shadow:4px 4px 0 var(--shadow);padding:16px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.theme{font-family:var(--script);color:var(--red);font-size:25px;line-height:1.1}
+.hole{display:flex;flex-direction:column;gap:12px}
+.matchup{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start}
+.matchup .dots{padding-top:30px}
+.who{min-width:0}
+.who .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.who .nm{font-family:var(--display);font-weight:400;font-size:clamp(14px,4.4vw,22px);line-height:1.1;text-transform:uppercase;letter-spacing:.01em}
+.who .yr{font-size:13px;color:var(--muted);font-variant-numeric:lining-nums tabular-nums}
+.who.pin{text-align:right}
+.flag{display:inline-block;width:10px;height:12px;background:var(--red);clip-path:polygon(0 0,100% 30%,0 60%);margin-right:4px}
+.dots{font-family:var(--mono);color:var(--muted);font-size:13px}
+.score{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);border-radius:4px;overflow:hidden}
+.score div{padding:8px 6px;text-align:center;border-left:2px solid var(--ink)}
+.score div:first-child{border-left:0}
+.score b{display:block;font-weight:700;font-size:28px;line-height:1;font-variant-numeric:lining-nums tabular-nums}
+.score span{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.score .rel b.over{color:var(--bad)} .score .rel b.under{color:var(--red)}
+.nmbtn{display:block;margin-left:auto;border:0;background:none;padding:0;color:inherit;text-align:right;cursor:pointer;text-decoration:underline dotted;text-decoration-thickness:1.5px;text-underline-offset:4px}
+.caret{font-family:var(--body);font-size:.75em;margin-left:4px;color:var(--red);text-decoration:none;display:inline-block}
+.peekbtn{border:0;background:none;font-family:var(--mono);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--red);padding:4px 0 0}
+.peek{font-size:12.5px;line-height:1.3;display:grid;gap:3px;padding-top:4px;font-variant-numeric:lining-nums}
+.peek .muted{white-space:nowrap}
+.trail{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.trail li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;position:relative;padding-bottom:8px}
+.trail li::before{content:"";position:absolute;left:10px;top:20px;bottom:0;width:2px;background:var(--ink);opacity:.35}
+.trail li:last-child::before{display:none}
+.trail .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--ink);background:var(--card);font-size:11px;font-weight:700;display:grid;place-items:center;font-variant-numeric:lining-nums}
+.trail li.cur .n{background:var(--green);color:var(--green-ink)}
+.trail .t{min-width:0}
+.trail .t b{font-weight:600}
+.trail .via{font-size:12.5px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn,.diff button{border:2px solid var(--ink);background:var(--card);border-radius:4px;padding:8px 12px;font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:12.5px}
+.rival{margin-top:10px;padding:8px 10px;border-left:4px solid var(--red);background:var(--bg);font-size:14px}
+.rival .rv{font-family:var(--mono);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.06em;color:var(--red);margin-right:8px}
+.pickpin{margin-top:14px;padding-top:12px;border-top:2px solid var(--ink)}
+.pins{display:grid;gap:8px;margin:10px 0}
+.pinopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:2px solid var(--ink);background:var(--card);border-radius:4px;padding:10px 12px;position:relative;padding-left:30px}
+.pinopt .flag{position:absolute;left:10px;top:13px}
+.pinopt .pn{font-family:var(--display);font-size:15px}
+.pinopt .py{font-size:13px;color:var(--muted)}
+.score.two{grid-template-columns:1fr 1fr}
+.clock{margin-top:8px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--red)}
+.clock .cl{text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:4px}
+.card.slim{padding-top:10px;padding-bottom:10px}
+.alist{display:grid;gap:6px;margin-top:10px;max-height:60vh;overflow:auto}
+.arow{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;text-align:left;border:2px solid var(--ink);background:var(--card);border-radius:4px;padding:8px 10px;font-size:14px}
+.arow .an{font-family:var(--mono);font-weight:700}
+.arow .as{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;color:var(--red)}
+.tutor{border-color:var(--red)}
+.tutor p{margin:.4em 0}
+.tutor .term{font-family:var(--script);color:var(--red);font-size:44px;line-height:1.1}
+.chip.tut,.pbtn.tut{outline:3px solid var(--pin);outline-offset:2px;animation:tutglow 1.2s ease-in-out infinite}
+@keyframes tutglow{50%{outline-color:transparent}}
+@media (prefers-reduced-motion:reduce){.chip.tut,.pbtn.tut{animation:none}}
+.nextin{font-family:var(--mono);font-size:13px;color:var(--muted);margin:2px 0 8px;text-transform:uppercase;letter-spacing:.05em}
+.nextin b{color:var(--ink)}
+.btn.primary{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn .cost{font-size:11px;color:var(--muted);margin-left:4px}
+.mball{display:inline-block;width:10px;height:10px;border-radius:50%;background:#fbf8ef;border:1.5px solid var(--ink);margin-right:6px;vertical-align:-1px;box-shadow:inset -2px -2px 0 rgba(0,0,0,.12)}
+.mball.used{background:transparent;box-shadow:none;opacity:.45}
+.btn.primary .cost{color:inherit;opacity:.8}
+.now h2{margin:2px 0 0;font-family:var(--display);font-weight:400;font-size:22px;line-height:1.05;text-transform:uppercase}
+.teams{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.team{display:flex;flex-direction:column;gap:6px}
+.team .tn{font-family:var(--display);font-size:13px;letter-spacing:.02em;text-transform:uppercase}
+.years{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--ink);background:var(--card);border-radius:3px;padding:5px 9px;font-weight:600;font-size:14px;font-variant-numeric:lining-nums tabular-nums}
+.chip[aria-expanded="true"]{background:var(--green);color:var(--green-ink)}
+.chip.locked{opacity:.4;text-decoration:line-through;cursor:not-allowed}
+.chip.hint{box-shadow:0 0 0 2px var(--pin)}
+.roster{border:2px solid var(--ink);border-radius:4px;background:var(--bg);padding:10px;display:flex;flex-direction:column;gap:8px}
+.roster input,.tsearch input,.search input{width:100%;border:1.5px solid var(--line);background:var(--card);border-radius:4px;padding:9px 10px;font:inherit;color:var(--ink)}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px;max-height:340px;overflow:auto}
+.pbtn{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:3px;padding:6px 9px;min-width:0}
+.pbtn:hover{border-color:var(--ink)}
+.pbtn .pn{font-weight:600;font-size:13.5px;line-height:1.2;overflow-wrap:anywhere}
+.pbtn .py{font-size:12px;color:var(--muted);font-variant-numeric:lining-nums tabular-nums}
+.pbtn.target{background:var(--pin-soft);border:2px solid var(--red)}
+.pbtn.seen{opacity:.5}
+.tsearch{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.loading{padding:40px 0;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px}
+.diff{display:flex;gap:6px;flex-wrap:wrap}
+.diff button{padding:6px 10px}
+.diff button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.search{position:relative}
+.sugg{position:absolute;left:0;right:0;top:100%;z-index:5;background:var(--card);border:2px solid var(--ink);border-radius:4px;margin-top:4px;overflow:hidden}
+.sugg button{display:flex;justify-content:space-between;width:100%;border:0;background:none;padding:8px 12px;text-align:left;gap:8px}
+.sugg button:hover,.sugg button:focus-visible{background:var(--fair)}
+.stack{display:flex;flex-direction:column;gap:10px}
+.yrs{display:flex;gap:12px;flex-wrap:wrap}
+.yrs label{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600}
+.yrs select{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--ink);border-radius:4px;padding:6px 8px;font-variant-numeric:lining-nums}
+.chk{display:flex;align-items:center;gap:8px}
+.chk input{accent-color:var(--red);width:17px;height:17px;flex:none}
+.tchips{display:flex;flex-wrap:wrap;gap:6px}
+.tchip{border:1.5px solid var(--ink);border-radius:3px;background:var(--card);padding:5px 8px;font-size:12.5px;font-weight:600;text-align:left}
+.tchip[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+/* scorecard */
+.scwrap{overflow-x:auto}
+table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-numeric:lining-nums tabular-nums}
+.sc th,.sc td{border:1.5px solid var(--ink);text-align:center;padding:3px 1px;font-size:14px;height:32px}
+.sc col.lab{width:52px}.sc col.totc{width:38px}
+.sc th:first-child,.sc td:first-child{text-align:left;padding-left:4px;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.sc .tot{font-weight:700;background:var(--fair)}
+.sc .hb{border:0;background:none;font-weight:700;width:100%;padding:4px 0}
+.sc .hb:disabled{color:var(--muted);cursor:default;opacity:.6}
+.sc .curh{background:var(--pin-soft)}
+.mk{display:inline-grid;place-items:center;min-width:23px;height:23px;font-weight:700}
+.mk.u1,.mk.u2{border:1.5px solid var(--red);border-radius:50%;color:var(--red)}
+.mk.u2{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--red)}
+.mk.o1,.mk.o2{border:1.5px solid var(--ink)}
+.mk.o2{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--ink)}
+.rdone{font-family:var(--script);color:var(--red);font-size:36px;line-height:1.1}
+/* result */
+.result{border-color:var(--red)}
+.result .term{font-family:var(--script);font-size:56px;line-height:1.05;color:var(--red)}
+.result .term.over{color:var(--muted)}
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+@media (max-width:440px){.paths{grid-template-columns:1fr}}
+.paths ol{margin:4px 0 0;padding-left:18px;font-size:13.5px}
+.paths ol li{margin-bottom:3px}
+.paths a{color:var(--ink);text-decoration-color:var(--line)}
+.sharebox{font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px;margin-top:10px;user-select:all;overflow-wrap:anywhere}
+/* modal */
+.modal{position:fixed;inset:0;z-index:20;background:var(--scrim);display:flex;align-items:flex-start;justify-content:center;overflow:auto;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{position:relative;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}
+.x{position:absolute;top:10px;right:10px;width:34px;height:34px;border:2px solid var(--ink);border-radius:4px;background:var(--card);font-size:20px;line-height:1}
+.mtitle{font-family:var(--script);font-weight:400;color:var(--red);font-size:38px;line-height:1.05;margin:0;padding-right:40px}
+.sheet h3{font-family:var(--display);font-weight:400;font-size:14px;letter-spacing:.04em;margin:4px 0 0;text-transform:uppercase}
+.sheet ol,.sheet ul{margin:0;padding-left:20px;display:grid;gap:5px}
+.sheet p{margin:0}
+.scoring{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.scoring b{font-family:var(--script);font-weight:400;color:var(--red);font-size:20px;line-height:1.1}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{border:1.5px solid var(--ink);border-radius:4px;text-align:center;padding:8px 2px}
+.tile b{display:block;font-size:24px;font-variant-numeric:lining-nums tabular-nums}
+.tile span{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 8px;align-items:center;font-size:13px;font-variant-numeric:lining-nums}
+.bar{height:12px;background:var(--ink);border-radius:2px;min-width:3px}
+.toast{position:fixed;z-index:30;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:13px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+/* Baseball card */
+.cardlink{border:0;background:none;padding:0;margin:0;font:inherit;color:inherit;text-align:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
+.cardlink:hover{color:var(--red)}
+.cardlink.tb{font-weight:600}
+.who .nm.cardlink{display:block;width:100%}
+.pwrap{position:relative;display:flex;min-width:0}
+.pwrap .pbtn{flex:1;padding-right:44px}
+.cardbtn{position:absolute;top:5px;right:5px;border:1px solid var(--line);background:var(--bg);border-radius:2px;padding:1px 4px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cardbtn:hover{color:var(--red);border-color:var(--red)}
+.bbcard{position:relative;max-width:560px;width:100%;background:var(--cb);color:var(--cb-ink);border:8px solid var(--cb-edge);border-radius:12px;box-shadow:6px 6px 0 var(--shadow);padding:14px;display:flex;flex-direction:column;gap:10px}
+.bbcard .x{background:var(--cb);border-color:var(--cb-ink);color:var(--cb-ink)}
+.bbhead{background:var(--cb-band);color:var(--cb-on-band);margin:-14px -14px 0;padding:14px 56px 10px 14px;border-radius:4px 4px 0 0}
+.bbname{font-family:var(--display);font-size:24px;line-height:1.05;text-transform:uppercase}
+.bbsub{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+.bbsub .hof{color:var(--cb-gold)}
+.bbbio{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;font-size:13px;border-bottom:2px solid var(--cb-ink);padding-bottom:8px}
+.bbbio span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.bbbio b{font-weight:600}
+.bbtabs{display:flex;gap:6px}
+.bbtabs button,.bbtabs span{border:2px solid var(--cb-ink);background:transparent;color:var(--cb-ink);border-radius:3px;padding:5px 12px;font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.bbtabs button[aria-selected="true"],.bbtabs.single span{background:var(--cb-ink);color:var(--cb)}
+.bbscroll{overflow-x:auto;border:2px solid var(--cb-ink);border-radius:3px}
+.bbt{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.bbt th,.bbt td{padding:4px 7px;text-align:right}
+.bbt thead th{background:var(--cb-ink);color:var(--cb);font-family:var(--mono);font-size:11px;letter-spacing:.04em;position:sticky;top:0}
+.bbt th:first-child,.bbt td:first-child{text-align:left;position:sticky;left:0;background:inherit}
+.bbt tbody tr:nth-child(odd){background:var(--cb-row)}
+.bbt tbody tr:nth-child(even){background:var(--cb)}
+.bbt tbody th{font-weight:700}
+.bbt td:nth-child(2){text-align:left;font-family:var(--mono);font-size:11.5px}
+.bbt tfoot tr{background:var(--cb-edge);color:var(--cb-on-band);font-weight:700}
+.bbt thead th:first-child{background:var(--cb-ink)}
+.star{color:var(--cb-band);margin-left:2px}
+.bbfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px}
+.bbfoot a{color:var(--cb-ink)}
+.cload{padding:20px 0;text-align:center;font-family:var(--mono);font-size:13px}
+/* Hall of Fame */
+.hallhead{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;padding-block:6px}
+.hallhead .eyebrow{letter-spacing:.3em}
+.hallhead h2{font-family:var(--script);font-weight:400;color:var(--red);font-size:48px;line-height:1;margin:0}
+.hallhead p{margin:0;max-width:40ch;color:var(--muted);font-size:13.5px}
+.plaques{display:flex;flex-direction:column;gap:10px}
+.plaque{position:relative;background:linear-gradient(160deg,var(--bronze-hi),var(--bronze) 55%,var(--bronze-line));color:var(--bronze-ink);border:3px solid var(--bronze-line);border-radius:8px;box-shadow:inset 0 0 0 2px var(--bronze-hi),3px 3px 0 var(--shadow);padding:10px 22px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px}
+.plaque::before,.plaque::after{content:"";position:absolute;top:50%;margin-top:-3px;width:6px;height:6px;border-radius:50%;background:var(--bronze-line);box-shadow:inset 1px 1px 0 var(--bronze-hi)}
+.plaque::before{left:7px}.plaque::after{right:7px}
+.plaque .rk{font-weight:700;font-size:15px;min-width:24px;text-align:center;opacity:.85;font-variant-numeric:lining-nums}
+.plaque .who2{min-width:0}
+.plaque .pn{font-family:var(--display);font-size:16px;line-height:1.15;text-transform:uppercase;text-shadow:0 1px 0 var(--bronze-line)}
+.plaque .py{font-size:12.5px;opacity:.9;font-variant-numeric:lining-nums}
+.plaque .stat{text-align:right;white-space:nowrap}
+.plaque .tm{font-weight:700;font-size:22px;line-height:1.05;font-variant-numeric:lining-nums tabular-nums;text-shadow:0 1px 0 var(--bronze-line)}
+.plaque .tm span{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.plaque .fr{font-size:12px;opacity:.85;font-variant-numeric:lining-nums}
+.plaque.first{grid-template-columns:1fr;text-align:center;gap:4px;padding:18px 16px 16px}
+.plaque.first::before,.plaque.first::after{top:12px;margin-top:0}
+.plaque.first .rk{font-family:var(--mono);font-weight:700;font-size:13px;letter-spacing:.2em}
+.plaque.first .goat{font-size:28px;line-height:1;display:block;margin-bottom:2px;letter-spacing:0}
+.plaque.first .pn{font-size:28px}
+.plaque.first .py{font-size:14px}
+.plaque.first .stat{text-align:center;margin-top:6px}
+.plaque.first .tm{font-size:46px}
+.plaque.first .tm span{font-size:24px}
+.plaque.first .fr{font-size:14px}
+[hidden]{display:none!important}
+footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:no-preference){.roster{animation:drop .16s ease-out}@keyframes drop{from{opacity:.4;transform:translateY(-4px)}}}
+</style>
+
+<div class="app">
+  <header>
+    <div class="mark"><small>Teammate links</small>Separation Golf
+      <svg class="bat" viewBox="0 0 260 20" aria-hidden="true">
+        <circle cx="7" cy="10" r="5.5" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.6"/>
+        <path d="M11,8 L104,7.4 C150,6.6 176,2.4 206,2.2 L249,2.2 Q257,2.2 257,10 Q257,17.8 249,17.8 L206,17.8 C176,17.6 150,13.4 104,12.6 L11,12 Z" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M16,8 L16,12 M22,7.9 L22,12.1 M28,7.9 L28,12.1 M34,7.8 L34,12.2" stroke="var(--ink)" stroke-width="1.2" opacity=".55"/>
+        <path d="M150,8.5 C175,6 200,5.4 245,5.6" stroke="var(--ink)" stroke-width="1" fill="none" opacity=".35"/>
+      </svg>
+    </div>
+    <div class="tools">
+      <button class="ibtn" id="openhelp" aria-label="How to play">?</button>
+      <button class="ibtn" id="opentutor">Tutorial</button>
+      <button class="ibtn" id="openhall" aria-label="Hall of Fame">HOF</button>
+      <button class="ibtn" id="openstats">Stats</button>
+    </div>
+    <div class="seg" role="group" aria-label="Mode">
+        <button id="m-daily" aria-pressed="true">Daily</button>
+        <button id="m-round" aria-pressed="false">Daily 9</button>
+        <button id="m-endless" aria-pressed="false">Endless</button>
+        <button id="m-custom" aria-pressed="false">Custom</button>
+        <button id="m-range" aria-pressed="false">Range</button>
+    </div>
+  </header>
+  <main id="main"><div class="card loading">Loading every big-league roster, 1871–2025…</div></main>
+  <footer>Rosters from the Lahman Baseball Database, 1871–2025 seasons.</footer>
+</div>
+<div class="modal" id="modal" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="mtitle"><button class="x" id="mclose" aria-label="Close">×</button><div class="stack" id="mbody"></div></div></div>
+<div class="modal" id="cardov" hidden><div class="bbcard" role="dialog" aria-modal="true" aria-label="Baseball card"><button class="x" id="cardclose" aria-label="Close card">×</button><div id="cardbody"></div></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const BASE_URL = "https://dompescamedia.github.io/separation-golf/";
+const LAUNCH = "2026-10-01";
+const MINY = 1871, MAXY = 2025;
+let P, TN, T, PT, NP, NT, FR, ID2;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+function rngFrom(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  let a=h>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+// BFS over the player <-> team-season graph, optionally limited to allowed team-seasons.
+function bfs(src,allow){
+  const dist=new Int16Array(NP).fill(-1), parP=new Int32Array(NP).fill(-1), parT=new Int32Array(NP).fill(-1);
+  const tseen=new Uint8Array(NT), q=new Int32Array(NP); let h=0,tl=0; q[tl++]=src; dist[src]=0;
+  while(h<tl){const u=q[h++];for(const ti of PT[u]){if(tseen[ti]||(allow&&!allow[ti]))continue;tseen[ti]=1;
+    for(const v of T[ti][2]){if(dist[v]<0){dist[v]=dist[u]+1;parP[v]=u;parT[v]=ti;q[tl++]=v}}}}
+  return {dist,parP,parT};
+}
+function shortestPath(a,b,allow){const r=bfs(a,allow);if(r.dist[b]<0)return null;const out=[];let v=b;
+  while(v!==a){out.push({p:v,t:r.parT[v]});v=r.parP[v]}out.reverse();return out}
+
+// Limits on a hole: C = {from, to, strict (route must stay in those years), fr (franchise list, route must stay on them)}
+const allYears=C=>!C||(C.from<=MINY&&C.to>=MAXY);
+const inYears=(ti,C)=>!C||(T[ti][0]>=C.from&&T[ti][0]<=C.to);
+const inTeams=(ti,C)=>!C||!C.fr||!C.fr.length||C.fr.includes(T[ti][3]);
+function allowFor(C){if(!C)return null;const yr=C.strict&&!allYears(C),tm=C.fr&&C.fr.length;if(!yr&&!tm)return null;
+  const al=new Uint8Array(NT);for(let i=0;i<NT;i++)if((!yr||inYears(i,C))&&inTeams(i,C))al[i]=1;return al}
+// Players worth drawing from under the limits. Well-known players carry more weight in the draw.
+function poolFor(C){const need=(C?C.to-C.from:99)>=3?2:1,out=[],extra=[];
+  for(let i=0;i<NP;i++){let n=0;for(const ti of PT[i])if(inYears(ti,C)&&inTeams(ti,C))n++;if(n<need)continue;(P[i][4]?out:extra).push(i)}
+  for(const i of extra){if(out.length>=40)break;out.push(i)}return out}
+const weight=i=>Math.pow(P[i][4]||1,1.6);
+function wpick(arr,rng){let tot=0;for(const i of arr)tot+=weight(i);let x=rng()*tot;for(const i of arr){x-=weight(i);if(x<=0)return i}return arr[arr.length-1]}
+const mid=i=>(P[i][1]+P[i][2])/2;
+// Older player tees off, younger player is the pin. Birth year first, debut year as a fallback.
+const ageKey=i=>(P[i][7]||P[i][1]-23)*10000+P[i][1];
+const isOlder=(x,y)=>ageKey(x)<ageKey(y);
+const seasons=i=>new Set(PT[i].map(ti=>T[ti][0])).size;
+function pickPair(rng,o){
+  const full=poolFor(o.C),allow=allowFor(o.C);let pool=full;
+  if(o.minFame){const top=full.filter(i=>P[i][4]>=o.minFame);if(top.length>=40)pool=top}
+  if(o.teeOk){const t=pool.filter(o.teeOk);if(t.length)pool=t}
+  const bpool=o.pinOk?full:pool,g0=o.gap||0;
+  const passes=o.strictOnly?[[o.lo,o.hi,g0]]:[[o.lo,o.hi,g0],[o.lo,o.hi,0],[Math.max(1,o.lo-1),o.hi+2,0],[1,99,0]];
+  for(const [l,h,g] of passes){
+    for(let tries=0;tries<(o.tee!=null?1:40);tries++){
+      const a=o.tee!=null?o.tee:wpick(pool,rng),{dist}=bfs(a,allow);
+      const c=bpool.filter(b=>b!==a&&dist[b]>=l&&dist[b]<=h&&Math.abs(mid(a)-mid(b))>=g&&(!o.pinOk||(isOlder(a,b)&&o.pinOk(b))));
+      if(c.length)return [a,wpick(c,rng)];
+    }
+  }
+  return o.strictOnly?null:[pool[0],pool[1]];
+}
+
+// Dates roll over at midnight US Eastern so everyone shares the same puzzle.
+function etDate(){try{return new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
+  catch(e){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}}
+const weekday=s=>new Date(s+"T12:00:00Z").getUTCDay();
+const prevDay=s=>{const d=new Date(s+"T12:00:00Z");d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10)};
+const dayNum=s=>Math.round((new Date(s+"T12:00:00Z")-new Date(LAUNCH+"T12:00:00Z"))/864e5)+1;
+const fmtDate=s=>new Date(s+"T12:00:00Z").toLocaleDateString(undefined,{month:"short",day:"numeric",timeZone:"UTC"});
+
+// Hand-picked days, keyed MM-DD. Anything not listed is generated automatically.
+const SPECIALS={"04-15":{label:"Jackie Robinson Day",tee:"robinja02"}};
+const knownOr2000s=b=>P[b][4]>=12||(P[b][2]>=2000&&seasons(b)>=6);
+const PLAN={};
+function dailyPlan(d){if(PLAN[d])return PLAN[d];
+  const rng=rngFrom("sepgolf:"+d),mmdd=+d.slice(5,7)*100+ +d.slice(8,10),wd=weekday(d),sp=SPECIALS[d.slice(5)];
+  let plan=null;
+  if(sp&&ID2.has(sp.tee))plan={pair:pickPair(rng,{lo:3,hi:5,tee:ID2.get(sp.tee),pinOk:knownOr2000s}),label:sp.label,C:null};
+  if(!plan&&wd===4){const C={from:MINY,to:1979,strict:false};plan={pair:pickPair(rng,{lo:3,hi:5,gap:20,C,minFame:12,pinOk:b=>P[b][4]>=12&&P[b][1]<1980}),label:"Throwback Thursday · stars from before 1980",C:null}}
+  if(!plan&&wd===0){const act=FR.map((f,i)=>i).filter(i=>FR[i][1]),f=act[Math.floor(rng()*act.length)],C={from:MINY,to:MAXY,strict:true,fr:[f]};
+    plan={pair:pickPair(rng,{lo:2,hi:4,gap:15,C,minFame:8,pinOk:b=>P[b][4]>=8}),label:"Franchise Sunday · "+FR[f][0]+" only",C}}
+  if(!plan){const bd=pickPair(rng,{lo:3,hi:5,gap:15,minFame:12,pinOk:b=>P[b][8]===mmdd&&P[b][4]>=12,strictOnly:true});
+    if(bd)plan={pair:bd,label:"Happy birthday, "+P[bd[1]][0],C:null}}
+  if(!plan)plan={pair:pickPair(rng,{lo:3,hi:5,gap:25,minFame:12,pinOk:knownOr2000s}),label:"",C:null};
+  return PLAN[d]=plan}
+const ROUND_BANDS=[[2,2],[3,3],[3,4],[2,3],[4,5],[3,3],[3,4],[4,5],[5,6]];
+// Daily 9: tee is a solid 1970s player (a pre-1970 legend only on holes 5 and 9); pin is a 2000s star or a decent player who finished in 2010 or later.
+const played70s=i=>PT[i].some(ti=>T[ti][0]>=1970&&T[ti][0]<=1979);
+const roundTee=(i,legends)=>(played70s(i)&&P[i][4]>=10)||(legends&&P[i][2]<1970&&P[i][4]>=50);
+const roundPin=i=>(P[i][2]>=2000&&P[i][2]<=2009&&P[i][4]>=20)||(P[i][2]>=2010&&P[i][4]>=7);
+function roundPlan(d,i){const k=d+":"+i;if(PLAN[k])return PLAN[k];const [lo,hi]=ROUND_BANDS[i];
+  return PLAN[k]={pair:pickPair(rngFrom("round2:"+k),{lo,hi,teeOk:p=>roundTee(p,i===4||i===8),pinOk:roundPin}),C:null}}
+const DIFFS={easy:{label:"Easy",lo:2,hi:2},medium:{label:"Medium",lo:3,hi:3},hard:{label:"Hard",lo:4,hi:5},legend:{label:"Legend",lo:6,hi:12}};
+const PRESETS=[["All time",MINY,MAXY],["Since 2000",2000,MAXY],["1980–2025",1980,MAXY],["1950–1999",1950,1999],["Before 1950",MINY,1949]];
+const S={clockOn:!!store.get("clock"),dir:store.get("dir")==="young"?"young":"old",mode:"daily",hole:null,open:-1,filter:"",tq:"",peek:{},diff:"medium",tally:{holes:0,over:0},rd:null,
+  custom:{a:null,b:null,teamOn:false,fr:[],showOld:false},range:Object.assign({from:MINY,to:MAXY,strict:true},store.get("range")||{})};
+
+// dir: "old" = older player tees off (default), "young" = younger player tees off, "keep" = order as given
+function newHole(a,b,kind,meta,C,saveKey,dir){
+  dir=dir||"old";if(dir!=="keep"&&(dir==="old"?isOlder(b,a):isOlder(a,b)))[a,b]=[b,a];
+  let allow=allowFor(C),toT=bfs(b,allow);
+  if(toT.dist[a]<0){allow=null;C=null;toT=bfs(b);toast("No route inside those limits, so this hole uses every roster")}
+  S.hole={a,b,kind,meta,C,allow,distT:toT.dist,best:toT.dist[a],par:toT.dist[a]+2,trail:[{p:a,t:-1}],strokes:0,hints:0,hintTeam:-1,done:false,gaveUp:false,saveKey};
+  if(saveKey){const sv=store.get(saveKey);if(sv&&sv.a===P[a][3]&&sv.b===P[b][3])Object.assign(S.hole,{trail:sv.trail,strokes:sv.strokes,hints:sv.hints,done:sv.done,gaveUp:sv.gaveUp,mullUsed:!!sv.mullUsed,n:sv.n??sv.strokes})}
+  if(S.clockOn&&(kind==="endless"||kind==="custom")&&!S.hole.done)S.hole.clock={t0:Date.now(),ticks:0};
+  S.open=-1;S.filter="";S.tq="";S.peek={};save();
+}
+function clockTxt(){const h=S.hole,ms=60000-(Date.now()-h.clock.t0)%60000,sec=Math.ceil(ms/1000)%60||60;return`<span class="cl">Shot clock</span> ${sec===60?"1:00":"0:"+String(sec).padStart(2,"0")}${h.clock.ticks?` · ${h.clock.ticks} added`:""}`}
+setInterval(()=>{const h=S.hole;if(!h||!h.clock||h.done)return;
+  const t=Math.floor((Date.now()-h.clock.t0)/60000);let changed=false;
+  while(h.clock.ticks<t){h.clock.ticks++;bump(h,1);changed=true}
+  const sb=$("#scorebox");if(!sb)return;
+  if(changed){toast("Shot clock. +1 stroke");save();const cv=$("#clockv");sb.outerHTML=scoreHTML();if(cv)cv.remove()}
+  else{const cv=$("#clockv");if(cv)cv.innerHTML=clockTxt()}},1000);
+function save(){const h=S.hole;if(!h||!h.saveKey)return;if(h.meta.late){const o=store.get(h.saveKey);if(o&&!o.late)h.meta.late=false}store.set(h.saveKey,{a:P[h.a][3],b:P[h.b][3],trail:h.trail,strokes:h.strokes,hints:h.hints,done:h.done,gaveUp:h.gaveUp,par:h.par,mullUsed:!!h.mullUsed,n:h.n,late:h.meta.late||undefined,clk:h.clock?h.clock.ticks:undefined})}
+const cur=()=>S.hole.trail[S.hole.trail.length-1].p;
+const teamsOf=u=>S.hole.allow?PT[u].filter(ti=>S.hole.allow[ti]):PT[u];
+const ageIn=(p,ti)=>P[p][7]?T[ti][0]-P[p][7]:null;
+
+function startDaily(d){const today=etDate();d=d||today;const pl=dailyPlan(d);newHole(pl.pair[0],pl.pair[1],"daily",{date:d,n:dayNum(d),label:pl.label,late:d!==today},pl.C,"daily:"+d)}
+function etLeft(){try{const f=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hourCycle:"h23",hour:"2-digit",minute:"2-digit",second:"2-digit"}).formatToParts(new Date()),g=t=>+f.find(x=>x.type===t).value;
+  const l=86400-(g("hour")*3600+g("minute")*60+g("second"));return`${Math.floor(l/3600)}h ${String(Math.floor(l%3600/60)).padStart(2,"0")}m ${String(l%60).padStart(2,"0")}s`}catch(e){return"midnight Eastern"}}
+const nextInHTML=()=>`<div class="nextin">Next Daily in <b class="cd">${etLeft()}</b></div>`;
+setInterval(()=>document.querySelectorAll(".cd").forEach(e=>e.textContent=etLeft()),1000);
+function archiveHTML(){const today=etDate();let d=today,rows="";
+  while(d>=LAUNCH){const r=store.get("daily:"+d),pl=dailyPlan(d);
+    const st=r&&r.done?(r.gaveUp?"Picked up":term(r.strokes-r.par,r.strokes)):r&&r.trail&&r.trail.length>1?"In progress":"";
+    rows+=`<button class="arow" data-day="${d}"><span class="an">#${dayNum(d)}</span><span class="ad">${new Date(d+"T12:00:00Z").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"})}${d===today?" · today":""}${pl.label?`<span class="muted small"> · ${esc(pl.label)}</span>`:""}</span><span class="as">${st}</span></button>`;d=prevDay(d)}
+  return`<h2 class="mtitle" id="mtitle">Daily archive</h2><p class="small">Play any Daily you missed. Archive holes don't count toward your streak.</p><div class="alist">${rows}</div>`}
+const roundRec=(d,i)=>store.get("round:"+d+":"+i);
+function startRound(i){const d=etDate();if(i==null){i=0;while(i<8&&roundRec(d,i)&&roundRec(d,i).done)i++}
+  S.rd={date:d,idx:i};const pl=roundPlan(d,i);newHole(pl.pair[0],pl.pair[1],"round",{date:d,n:dayNum(d),idx:i},pl.C,"round:"+d+":"+i)}
+// Three pins at the current difficulty from one tee, for Endless.
+function pinChoices(){const D=DIFFS[S.diff],C=S.range;
+  for(let k=0;k<12;k++){const pr=pickPair(Math.random,{lo:D.lo,hi:D.hi,C,strictOnly:true});if(!pr)continue;
+    let a=pr[0];const allow=allowFor(C),{dist}=bfs(a,allow),pool=poolFor(C);
+    const fits=b=>b!==a&&dist[b]>=D.lo&&dist[b]<=D.hi&&(S.dir==="old"?isOlder(a,b):isOlder(b,a));
+    let c=pool.filter(fits),out=[];while(out.length<3&&c.length){const b=wpick(c,Math.random);out.push(b);c=c.filter(x=>x!==b)}
+    if(out.length===3)return{a,opts:out.map(b=>({b,par:dist[b]+2}))}}
+  return null}
+function startTutor(){S.mode="tutor";newHole(ID2.get("ruthba01"),ID2.get("dimagjo01"),"tutor",{},null,null,"keep")}
+function tutorHTML(){const h=S.hole,u=cur(),R=ID2.get("ruthba01"),G=ID2.get("gehrilo01"),D=h.b,nm=i=>`<b>${esc(P[i][0])}</b>`;
+  if(h.done){S.tut=null;const t=h.gaveUp?"That's the way":term(h.strokes-h.par,h.strokes)+"!";
+    return`<section class="card tutor" aria-live="polite"><div class="eyebrow">Tutorial</div><div class="term">${t}</div>
+    <p>${h.gaveUp?"Ruth to Gehrig to DiMaggio is the shortest route.":`You did it in ${h.strokes}.`} The shortest route is an <b>eagle</b>, and par is two jumps more than that.</p>
+    <p class="small">Hints and going back cost a stroke. You get one free <b>Mulligan</b> to take back a move, and scores stop counting at 10. Tap any name for his baseball card.</p>
+    <div class="actions"><button class="btn primary" id="tutdaily">Play today's Daily</button><button class="btn" id="tutrange">Hit the Range</button></div></section>`}
+  const yt=(p,y,q)=>PT[p].find(ti=>T[ti][0]===y&&T[ti][2].includes(q));let chip,pl;
+  if(u===R){chip=yt(R,1927,G);pl=G}else if(u===G){chip=yt(G,1936,D);pl=D}
+  else{const du=h.distT[u];outer:for(const ti of PT[u])for(const v of T[ti][2])if(h.distT[v]===du-1){chip=ti;pl=v;break outer}}
+  S.tut={chip,pl};let msg;
+  if(S.open!==chip)msg=h.trail.length===1?`Get from the tee, ${nm(h.a)}, to the pin, ${nm(D)}, by jumping teammate to teammate. Ruth's seasons are below. Tap the glowing <b>${T[chip][0]}</b> under ${esc(TN[T[chip][1]])}.`
+    :`You're on ${nm(u)}. Tap his glowing <b>${T[chip][0]}</b> season to open that roster.`;
+  else msg=pl===D?`Find ${nm(D)}. The pin always has a red flag. Tap him to hole out.`:`Tap ${nm(pl)}. Every jump is one stroke.${u===R?" Gehrig played with Ruth here and with DiMaggio later.":""}`;
+  return`<section class="card tutor" aria-live="polite"><div class="eyebrow">Tutorial · step ${Math.min(h.trail.length*2-(S.open===chip?0:1),4)} of 4</div><p>${msg}</p>${h.trail.length===1&&S.open!==chip?`<p class="small muted">Tip: tap a big name, like the tee or pin, for his baseball card.</p>`:""}</section>`}
+function startRange(){const [a,b]=pickPair(Math.random,{lo:1,hi:2,minFame:15});newHole(a,b,"range",{},null,null,S.dir)}
+function startEndless(){const [a,b]=pickPair(Math.random,{lo:DIFFS[S.diff].lo,hi:DIFFS[S.diff].hi,C:S.range});newHole(a,b,"endless",{diff:S.diff},{...S.range},null,S.dir)}
+const customC=()=>({...S.range,fr:S.custom.teamOn&&S.custom.fr.length?[...S.custom.fr]:null});
+
+// Stroke limit: the score stops at MAXS, but you can keep playing to finish.
+const MAXS=10;
+function bump(h,k){if(h.kind==="range")return;const was=h.strokes;h.n=(h.n??h.strokes)+k;h.strokes=Math.max(0,Math.min(h.n,MAXS));
+  if(k>0&&was<MAXS&&h.strokes===MAXS&&!h.done)toast("Stroke limit. Your score stays at 10, so finish if you want to")}
+function jump(p,t){const h=S.hole;if(h.done)return;
+  h.trail.push({p,t});bump(h,1);S.open=-1;S.filter="";S.tq="";h.hintTeam=-1;
+  if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"})}
+function back(){const h=S.hole;if(h.done||h.trail.length<2)return;const prev=h.trail[h.trail.length-2];
+  h.trail.push({p:prev.p,t:-2});bump(h,1);S.open=-1;h.hintTeam=-1;save();render()}
+function hint(){const h=S.hole;if(h.done)return;const u=cur(),du=h.distT[u];
+  for(const ti of teamsOf(u))for(const v of T[ti][2])if(h.distT[v]===du-1){h.hintTeam=ti;h.hints++;bump(h,1);S.open=ti;save();render();return}}
+// Mulligan: take back the last move for free. One per hole, or one for the whole Daily 9.
+const roundMull=d=>store.get("mull:"+d);
+const mullLeft=()=>{const h=S.hole;return h.kind==="round"?!roundMull(h.meta.date):!h.mullUsed};
+function mulligan(){const h=S.hole;if(h.done||h.trail.length<2||!mullLeft())return;
+  h.trail.pop();bump(h,-1);h.mullUsed=true;if(h.kind==="round")store.set("mull:"+h.meta.date,{i:h.meta.idx});
+  S.open=-1;h.hintTeam=-1;save();render();toast("Mulligan taken. That move never happened")}
+function giveUp(){finish(true);save();render()}
+function finish(gave){const h=S.hole;h.done=true;if(h.clock)h.clock.end=Date.now();h.gaveUp=gave;if(h.kind==="endless"){S.tally.holes++;S.tally.over+=gave?2:(h.strokes-h.par)}}
+
+function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Albatross","-2":"Eagle","-1":"Birdie","0":"Par","1":"Bogey","2":"Double bogey","3":"Triple bogey"})[rel]||"+"+rel}
+const sym=r=>!r||!r.done?"·":r.gaveUp?"❌":(r.strokes-r.par<=-2?"🦅":r.strokes-r.par===-1?"🐦":r.strokes-r.par===0?"⚪":r.strokes-r.par===1?"🟧":"🟥");
+const yrs=i=>P[i][1]===P[i][2]?String(P[i][1]):P[i][1]+"–"+P[i][2];
+const tname=ti=>T[ti][0]+" "+TN[T[ti][1]];
+const bref=i=>{const id=P[i][3];return "https://www.baseball-reference.com/players/"+id[0]+"/"+id+".shtml"};
+const relTxt=r=>r>0?"+"+r:r<0?String(r):"E";
+
+function limitsLabel(C){if(!C)return"";const bits=[];
+  if(C.strict&&!allYears(C))bits.push(`${C.from}–${C.to} rosters`);
+  if(C.fr&&C.fr.length)bits.push(C.fr.length<=2?C.fr.map(f=>FR[f][0]).join(" & ")+" only":C.fr.length+" teams only");
+  return bits.join(" · ")}
+function holeLabel(){const h=S.hole;
+  if(h.kind==="daily")return"Daily hole #"+h.meta.n+" · "+fmtDate(h.meta.date);
+  if(h.kind==="round")return"Daily 9 #"+h.meta.n+" · hole "+(h.meta.idx+1)+" of 9";
+  if(h.kind==="endless")return DIFFS[h.meta.diff].label+" · hole "+(S.tally.holes+(h.done?0:1));
+  if(h.kind==="range")return"Practice range";
+  if(h.kind==="tutor")return"Tutorial";
+  return"Custom challenge"}
+
+function render(){
+  ["daily","round","endless","custom","range"].forEach(k=>$("#m-"+k).setAttribute("aria-pressed",S.mode===k));
+  let html="";
+  if(S.mode==="hall"){$("#main").innerHTML=hallHTML();bindCards();return}
+  if(S.mode==="round")html+=roundCardHTML();
+  if(S.mode==="endless")html+=`<div class="card row"><div class="diff" role="group" aria-label="Difficulty">${Object.entries(DIFFS).map(([k,v])=>`<button data-diff="${k}" aria-pressed="${S.diff===k}">${v.label}</button>`).join("")}</div><div class="small muted">${S.tally.holes?`Round: ${S.tally.holes} hole${S.tally.holes>1?"s":""}, ${relTxt(S.tally.over)}`:"Round not started"}</div></div>`+rangeHTML();
+  if(S.mode==="custom")html+=rangeHTML()+teamsHTML()+customHTML();
+  if(S.mode==="tutor"&&S.hole&&S.hole.kind==="tutor")html+=tutorHTML()+holeHTML();
+  if(S.mode==="range")html+=`<div class="card"><div class="eyebrow">Practice range</div><div class="small">Short holes, one or two jumps, with well-known players. Nothing is scored and hints are free.</div></div>`;
+  if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div><button class="btn" id="archive">Archive</button></div>`;
+  if(S.hole&&S.hole.kind===({daily:"daily",round:"round",endless:"endless",custom:"custom",range:"range"})[S.mode])html+=holeHTML();
+  $("#main").innerHTML=html;bind();
+}
+function scoreHTML(){const h=S.hole,rel=h.strokes-h.par;
+  if(h.kind==="range")return`<div class="score two" id="scorebox"><div><b>${h.best}</b><span>Shortest</span></div><div><b>${h.strokes}</b><span>Swings</span></div></div>`;
+  const clk=h.clock&&!h.done?`<div class="clock" id="clockv">${clockTxt()}</div>`:"";
+  return`<div class="score" id="scorebox">
+      <div><b>${h.par}</b><span>Par</span></div>
+      <div><b>${h.strokes}</b><span>${h.strokes>=MAXS?"Strokes · max":"Strokes"}</span></div>
+      <div class="rel"><b class="${h.gaveUp||rel>0?"over":rel<0?"under":""}">${h.gaveUp?"X":h.strokes===0?"–":relTxt(rel)}</b><span>To par</span></div>
+    </div>${clk}`}
+function holeHTML(){
+  const h=S.hole,rel=h.strokes-h.par,lim=limitsLabel(h.C),theme=h.meta.label;
+  let s=`<section class="card hole" aria-label="Current hole">
+    <div><div class="eyebrow">${esc(holeLabel())}${lim&&!theme?" · "+esc(lim):""}</div>${theme?`<div class="theme">${esc(theme)}</div>`:""}</div>
+    <div class="matchup">
+      <div class="who"><div class="lbl">Tee</div><button class="nm cardlink" data-card="${h.a}">${esc(P[h.a][0])}</button><div class="yr">${yrs(h.a)}</div>${peekToggle("a",h.a)}</div>
+      <div class="dots" aria-hidden="true">···›</div>
+      <div class="who pin"><div class="lbl"><span class="flag"></span>Pin</div><button class="nm cardlink" data-card="${h.b}">${esc(P[h.b][0])}</button><div class="yr">${yrs(h.b)}</div>${peekToggle("b",h.b)}</div>
+    </div>
+    ${scoreHTML()}
+  </section>`;
+  if(h.done)s+=resultHTML();
+  if(h.rival&&!h.done)s=s.replace("</section>",rivalHTML()+"</section>");
+  s+=`<section class="card"><div class="eyebrow">Your route</div><ol class="trail">${h.trail.map((st,i)=>`<li class="${i===h.trail.length-1&&!h.done?"cur":""}"><span class="n">${i}</span><div class="t"><button class="cardlink tb" data-card="${st.p}">${esc(P[st.p][0])}</button>${st.t>=0?`<div class="via">via ${esc(tname(st.t))}${ageIn(st.p,st.t)?` · age ${ageIn(st.p,st.t)}`:""}</div>`:st.t===-2?`<div class="via">went back</div>`:`<div class="via">tee</div>`}</div></li>`).join("")}</ol></section>`;
+  if(!h.done)s+=nowHTML();
+  return s;
+}
+function peekToggle(k,p){const open=!!S.peek[k];return`<button class="peekbtn" data-peek="${k}" aria-expanded="${open}">${open?"Hide":"Show"} teams <span aria-hidden="true">${open?"▴":"▾"}</span></button>${open?peekHTML(p):""}`}
+function peekHTML(p){const tis=[...PT[p]].sort((x,y)=>T[x][0]-T[y][0]),g=[];
+  for(const ti of tis){const l=g[g.length-1];if(l&&l.n===T[ti][1]&&T[ti][0]-l.y1<=1)l.y1=T[ti][0];else g.push({n:T[ti][1],y0:T[ti][0],y1:T[ti][0]})}
+  return `<div class="peek">${g.map(x=>`<div>${esc(TN[x.n])}<br><span class="muted">${x.y0===x.y1?x.y0:x.y0+"–"+x.y1}</span></div>`).join("")}</div>`}
+function nowHTML(){
+  const h=S.hole,u=cur(),seen=new Set(h.trail.map(x=>x.p));
+  const tis=[...PT[u]].sort((x,y)=>T[x][0]-T[y][0]||T[x][1]-T[y][1]),okT=ti=>!h.allow||h.allow[ti],nOk=tis.filter(okT).length;
+  const groups=[];for(const ti of tis){const g=groups[groups.length-1];if(g&&g.n===T[ti][1]&&T[ti][0]-T[g.ts[g.ts.length-1]][0]<=1)g.ts.push(ti);else groups.push({n:T[ti][1],ts:[ti]})}
+  let s=`<section class="card now"><div class="row"><div><div class="eyebrow">You're on</div><h2><button class="cardlink" data-card="${u}">${esc(P[u][0])}</button></h2><div class="small muted">${yrs(u)} · ${tis.length} team-season${tis.length===1?"":"s"}${nOk<tis.length?` · ${tis.length-nOk} outside this hole’s limits`:""}</div></div>
+    <div class="actions"><button class="btn" id="hint">Hint<span class="cost">${h.kind==="range"?"free":"+1"}</span></button><button class="btn" id="back" ${h.trail.length<2?"disabled":""}>Back<span class="cost">${h.kind==="range"?"free":"+1"}</span></button>${h.kind==="range"||h.kind==="tutor"?"":`<button class="btn mull" id="mull" ${h.trail.length<2||!mullLeft()?"disabled":""} title="Take back your last move for free. ${h.kind==="round"?"One for the whole round":"One per hole"}."><span class="mball${mullLeft()?"":" used"}" aria-hidden="true"></span>Mulligan<span class="cost">${mullLeft()?"1 left":"used"}</span></button>`}<button class="btn" id="giveup">${h.kind==="range"||h.kind==="tutor"?"Show me":"Give up"}</button></div></div>
+    <div class="tsearch"><input id="tsearch" type="search" placeholder="Search all of ${esc(P[u][0])}'s teammates" value="${esc(S.tq)}" autocomplete="off">${teammateResults(u,seen)}</div>
+    <div class="teams">`;
+  for(const g of groups){
+    s+=`<div class="team"><div class="tn">${esc(TN[g.n])}</div><div class="years">${g.ts.map(ti=>okT(ti)?`<button class="chip${h.hintTeam===ti?" hint":""}${S.mode==="tutor"&&S.tut&&S.tut.chip===ti?" tut":""}" data-team="${ti}" aria-expanded="${S.open===ti}">${T[ti][0]}</button>`:`<button class="chip locked" disabled title="Outside this hole’s limits">${T[ti][0]}</button>`).join("")}</div>`;
+    if(g.ts.includes(S.open))s+=rosterHTML(S.open,u,seen);
+    s+=`</div>`;
+  }
+  return s+`</div></section>`;
+}
+function norm(s){return s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase()}
+const pbtn=(p,ti,seen,sub)=>`<div class="pwrap"><button class="pbtn${p===S.hole.b?" target":""}${S.mode==="tutor"&&S.tut&&S.tut.pl===p?" tut":""}${seen.has(p)?" seen":""}" data-p="${p}" data-t="${ti}"><span class="pn">${p===S.hole.b?'<span class="flag"></span>':""}${esc(P[p][0])}</span><span class="py">${sub}</span></button><button class="cardbtn" data-card="${p}" aria-label="${esc(P[p][0])} baseball card">Card</button></div>`;
+function teammateResults(u,seen){const q=norm(S.tq.trim());if(q.length<2)return"";const out=[];
+  for(const ti of teamsOf(u))for(const p of T[ti][2])if(p!==u&&norm(P[p][0]).includes(q))out.push([p,ti]);
+  out.sort((x,y)=>P[x[0]][6].localeCompare(P[y[0]][6])||T[x[1]][0]-T[y[1]][0]);
+  if(!out.length)return`<div class="small muted">No teammate matches “${esc(S.tq)}”.</div>`;
+  return`<div class="plist">${out.slice(0,40).map(([p,ti])=>pbtn(p,ti,seen,esc(tname(ti))+(ageIn(p,ti)?" · age "+ageIn(p,ti):""))).join("")}</div>`}
+function rosterHTML(ti,u,seen){
+  const f=norm(S.filter);let ps=T[ti][2].filter(p=>p!==u);
+  if(f)ps=ps.filter(p=>norm(P[p][0]).includes(f));
+  ps.sort((x,y)=>P[x][6].localeCompare(P[y][6]));
+  return `<div class="roster"><div class="row"><b class="small">${esc(tname(ti))}</b><span class="small muted">${T[ti][2].length} players</span></div>
+    <input id="rfilter" type="search" placeholder="Filter this roster" value="${esc(S.filter)}" autocomplete="off">
+    <div class="plist">${ps.map(p=>pbtn(p,ti,seen,(ageIn(p,ti)?"Age "+ageIn(p,ti)+" · ":"")+yrs(p))).join("")||'<span class="small muted">No one matches.</span>'}</div></div>`;
+}
+function resultHTML(){
+  if(S.hole.kind==="tutor")return"";
+  const h=S.hole,rel=h.strokes-h.par,best=shortestPath(h.a,h.b,h.allow);
+  if(h.kind==="range"){const pl=steps=>`<ol>${steps.map(st=>`<li><button class="cardlink tb" data-card="${st.p}">${esc(P[st.p][0])}</button>${st.t>=0?` <span class="muted small">· ${esc(tname(st.t))}</span>`:""}</li>`).join("")}</ol>`;
+    return`<section class="card result" aria-live="polite"><div class="eyebrow">${h.gaveUp?"Here's the way":"Holed out"}</div><div class="term">${h.gaveUp?"Next one":h.trail.length-1===h.best?"Pured it":"In the hole"}</div>
+    <div class="paths"><div><div class="eyebrow">A shortest route</div>${pl([{p:h.a,t:-1},...best])}</div></div>
+    <div class="actions" style="margin-top:10px"><button class="btn primary" id="nextball">Next ball</button></div></section>`}
+  const t=h.gaveUp?"Picked up":term(rel,h.strokes);
+  const pathList=steps=>`<ol>${steps.map(st=>`<li><button class="cardlink tb" data-card="${st.p}">${esc(P[st.p][0])}</button>${st.t>=0?` <span class="muted small">· ${esc(tname(st.t))}</span>`:""}</li>`).join("")}</ol>`;
+  let next="";
+  if(h.kind==="daily")next=`<button class="btn" id="toround">Play the Daily 9</button>`;
+  else if(h.kind==="round")next=h.meta.idx<8?`<button class="btn" id="nexthole">Next hole</button>`:`<button class="btn" id="toscore">See scorecard</button>`;
+  else if(h.kind==="endless"){if(h.pick===undefined)h.pick=pinChoices();next=h.pick?"":`<button class="btn" id="next">Next hole</button>`}
+  else next=`<button class="btn" id="next">New challenge</button>`;
+  const pick=h.kind==="endless"&&h.pick?`<div class="pickpin"><div class="eyebrow">Next hole · pick your pin</div><div class="small muted">Tee: <button class="cardlink" data-card="${h.pick.a}">${esc(P[h.pick.a][0])}</button> · ${yrs(h.pick.a)}</div>
+    <div class="pins">${h.pick.opts.map((o,i)=>`<button class="pinopt" data-pin="${i}"><span class="flag"></span><span class="pn">${esc(P[o.b][0])}</span><span class="py">${yrs(o.b)} · Par ${o.par}</span></button>`).join("")}</div>
+    <button class="btn" id="next">Surprise me</button></div>`:"";
+  return `<section class="card result" aria-live="polite">
+    ${rivalHTML()}${h.kind==="daily"&&!h.meta.late||h.kind==="round"&&h.meta.idx===8?nextInHTML():""}<div class="eyebrow">${h.gaveUp?"Here's how it could go":"Holed out"}</div>
+    <div class="term ${!h.gaveUp&&rel>0?"over":""}">${esc(t)}</div>
+    <div class="small muted">${h.gaveUp?`Shortest route was ${h.best} jump${h.best>1?"s":""}.`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}${h.hints?`, ${h.hints} hint${h.hints>1?"s":""}`:""}. Perfect route: ${h.best}.`}</div>
+    <div class="paths">
+      ${h.gaveUp?"":`<div><div class="eyebrow">Your route</div>${pathList(h.trail)}</div>`}
+      ${h.rival?`<div><div class="eyebrow">Friend's route · ${h.rival.strokes}</div>${pathList(rivalSteps(h.rival,h.a,h.allow))}</div>`:""}
+      <div><div class="eyebrow">A shortest route</div>${pathList([{p:h.a,t:-1},...best])}</div>
+    </div>
+    <div class="sharebox" id="sharebox">${esc(shareText())}</div>
+    ${pick}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
+  </section>`;
+}
+function challengeLink(){const h=S.hole,C=h.C;let l=BASE_URL+"#ch."+P[h.a][3]+"."+P[h.b][3];
+  if(C&&C.strict&&!allYears(C))l+=".y"+C.from+"-"+C.to;if(C&&C.fr&&C.fr.length)l+=".t"+C.fr.join("-");
+  if(h.done&&!h.gaveUp)l+=".r"+h.strokes+"-"+h.trail.slice(1).map(st=>P[st.p][3]).join("-");return l}
+function challengeMsg(){const h=S.hole,me=h.done&&!h.gaveUp;
+  return (me?`I got ${P[h.a][0]} to ${P[h.b][0]} in ${h.strokes}. Beat me. Par ${h.par}.`:`Can you connect ${P[h.a][0]} to ${P[h.b][0]}? Par ${h.par}.`)+"\n"+challengeLink()}
+// Rebuild a rival's route from player ids, finding a shared season for each jump.
+function rivalSteps(r,a,allow){const out=[{p:a,t:-1}];let u=a;
+  for(const v of r.ids){const set=new Set(PT[u]);const ok=PT[v].filter(ti=>set.has(ti));const t=ok.find(ti=>!allow||allow[ti]);out.push({p:v,t:t!=null?t:ok.length?ok[0]:-3});u=v}return out}
+function rivalHTML(){const h=S.hole,r=h.rival;if(!r)return"";
+  if(!h.done)return`<div class="rival"><span class="rv">Rival</span>Your friend holed this in <b>${r.strokes}</b>. Beat it.</div>`;
+  if(h.gaveUp)return`<div class="rival"><span class="rv">Rival</span>Your friend holed this in <b>${r.strokes}</b>.</div>`;
+  const d=r.strokes-h.strokes;return`<div class="rival"><span class="rv">Rival</span>${d>0?`You beat your friend by <b>${d}</b>.`:d<0?`Your friend wins by <b>${-d}</b>.`:"All square. You tied your friend."}</div>`}
+function shareText(){
+  const h=S.hole,rel=h.strokes-h.par;
+  const head=h.kind==="daily"?`⛳ Separation Golf · Daily #${h.meta.n}`:h.kind==="round"?`⛳ Separation Golf · Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:`⛳ Separation Golf`;
+  const balls=h.gaveUp?"❌":h.trail.slice(1).map((st,i)=>i===h.trail.length-2?"⛳":"⚾").join("")+(h.hints?" "+"💡".repeat(h.hints):"");
+  const line=(h.gaveUp?`Par ${h.par} · picked up`:`Par ${h.par} · ${h.strokes} strokes · ${term(rel,h.strokes)}`)+(h.mullUsed?" · mulligan":"");
+  return [head,h.meta.label||"",`${P[h.a][0]} → ${P[h.b][0]}`,line,balls,h.kind==="daily"||h.kind==="round"?BASE_URL:challengeLink()].filter(Boolean).join("\n");
+}
+// Daily 9 scorecard
+function roundState(){const d=S.rd.date,res=[];for(let i=0;i<9;i++)res.push(roundRec(d,i));return res}
+function roundTotals(res){let st=0,par=0,done=0;for(const r of res)if(r&&r.done){done++;par+=r.par;st+=r.gaveUp?Math.min(r.par+2,MAXS):r.strokes}return{st,par,done}}
+function roundCardHTML(){
+  const res=roundState(),{st,par,done}=roundTotals(res),cur=S.rd.idx;
+  const mk=r=>{if(!r||!r.done)return"";if(r.gaveUp)return`<span class="mk o2">X</span>`;const d=r.strokes-r.par;return`<span class="mk ${d<=-2?"u2":d===-1?"u1":d===1?"o1":d>=2?"o2":""}">${r.strokes}</span>`};
+  const can=i=>i===0||(res[i-1]&&res[i-1].done)||res[i];
+  let s=`<section class="card stack"><div class="row"><div class="eyebrow">Daily 9 #${dayNum(S.rd.date)} · ${fmtDate(S.rd.date)}</div><div class="small muted">${done}/9 holes${done?` · ${relTxt(st-par)}`:""} · <span class="mball${roundMull(S.rd.date)?" used":""}" aria-hidden="true"></span>Mulligan ${roundMull(S.rd.date)?`used on ${roundMull(S.rd.date).i+1}`:"1 left"}</div></div>
+    <div class="scwrap"><table class="sc"><colgroup><col class="lab">${res.map(()=>"<col>").join("")}<col class="totc"></colgroup><tr><td>Hole</td>${res.map((r,i)=>`<th class="${i===cur?"curh":""}"><button class="hb" data-rh="${i}" ${can(i)?"":"disabled"} aria-label="Hole ${i+1}">${i+1}</button></th>`).join("")}<th class="tot">Tot</th></tr>
+    <tr><td>Par</td>${res.map((r,i)=>`<td class="${i===cur?"curh":""}">${r?r.par:""}</td>`).join("")}<td class="tot">${done?par:""}</td></tr>
+    <tr><td>Score</td>${res.map((r,i)=>`<td class="${i===cur?"curh":""}">${mk(r)}</td>`).join("")}<td class="tot">${done?st:""}</td></tr></table></div>`;
+  if(done===9)s+=`<div class="rdone">Round complete: ${st} (${relTxt(st-par)})</div>${nextInHTML()}<div class="sharebox" id="roundbox">${esc(roundShare(res,st,par))}</div><div class="actions"><button class="btn primary" id="roundshare">Copy scorecard</button></div>`;
+  return s+`</section>`;
+}
+function roundShare(res,st,par){const m=roundMull(S.rd.date);return[`⛳ Separation Golf · Daily 9 #${dayNum(S.rd.date)}`,`${st} strokes (${relTxt(st-par)})${m?` · mulligan on ${m.i+1}`:""}`,res.map(sym).join(""),BASE_URL].join("\n")}
+// Endless and Custom setup
+function rangeHTML(){const r=S.range,opts=sel=>{let o="";for(let y=MAXY;y>=MINY;y--)o+=`<option value="${y}"${y===sel?" selected":""}>${y}</option>`;return o};
+  return `<section class="card stack"><label class="chk"><input type="checkbox" id="clockon" ${S.clockOn?"checked":""}> <b>Shot clock</b> <span class="small muted">every minute on a hole adds a stroke</span></label><div class="eyebrow">Direction</div>
+    <div class="diff" role="group" aria-label="Direction"><button data-dir="old" aria-pressed="${S.dir==="old"}">Older → younger</button><button data-dir="young" aria-pressed="${S.dir==="young"}">Younger → older</button></div>
+    <div class="eyebrow">Years to play in</div>
+    <div class="diff" role="group" aria-label="Year presets">${PRESETS.map(([l,a,b])=>`<button data-preset="${a}-${b}" aria-pressed="${r.from===a&&r.to===b}">${l}</button>`).join("")}</div>
+    <div class="yrs"><label>From <select id="rfrom">${opts(r.from)}</select></label><label>to <select id="rto">${opts(r.to)}</select></label></div>
+    <label class="small chk"><input type="checkbox" id="rstrict" ${r.strict?"checked":""}> Route can only use rosters from these years</label></section>`}
+function teamsHTML(){const c=S.custom;
+  let s=`<section class="card stack"><label class="chk"><input type="checkbox" id="teamon" ${c.teamOn?"checked":""}> <b>Stay within certain teams</b></label>`;
+  if(c.teamOn){const list=FR.map((f,i)=>i).filter(i=>c.showOld||FR[i][1]||c.fr.includes(i));
+    s+=`<div class="small muted">Every jump has to use a roster from a team you pick. Pick one or more.</div>
+    <div class="tchips">${list.map(i=>`<button class="tchip" data-fr="${i}" aria-pressed="${c.fr.includes(i)}">${esc(FR[i][0])}${FR[i][1]?"":` <span class="muted">(${FR[i][2]===FR[i][3]?FR[i][2]:FR[i][2]+"–"+FR[i][3]})</span>`}</button>`).join("")}</div>
+    <div class="actions"><button class="btn" id="frold">${c.showOld?"Hide":"Show"} old & Negro Leagues teams</button>${c.fr.length?`<button class="btn" id="frclear">Clear teams</button>`:""}</div>`}
+  return s+`</section>`}
+function customHTML(){const c=S.custom;
+  return `<section class="card stack"><div class="eyebrow">Players (optional)</div>
+    <div class="search"><input id="ca" type="search" placeholder="Any player, or leave blank" value="${c.a!=null?esc(P[c.a][0]):""}" autocomplete="off"><div class="sugg" id="sa" hidden></div></div>
+    <div class="search"><input id="cb" type="search" placeholder="Any player, or leave blank" value="${c.b!=null?esc(P[c.b][0]):""}" autocomplete="off"><div class="sugg" id="sb" hidden></div></div>
+    <div class="small muted">Fill in both, one, or neither. Blanks get filled with someone who fits your years and teams.</div>
+    <div class="actions"><button class="btn primary" id="cplay">Tee off</button></div></section>`}
+// Fill in whichever players are blank, respecting the custom limits.
+function customPair(){const C=customC(),c=S.custom;let a=c.a,b=c.b;
+  if(a!=null&&b!=null&&a!==b)return[a,b];
+  const one=a!=null?a:b;
+  if(one==null)return pickPair(Math.random,{lo:3,hi:6,gap:C.fr?0:20,C,minFame:8});
+  const allow=allowFor(C),{dist}=bfs(one,allow),pool=poolFor(C).filter(i=>i!==one&&dist[i]>0);
+  for(const [lo,hi] of [[3,5],[2,6],[1,99]]){const cand=pool.filter(i=>dist[i]>=lo&&dist[i]<=hi);if(cand.length){const o=wpick(cand,Math.random);return a!=null?[a,o]:[o,b]}}
+  return pickPair(Math.random,{lo:3,hi:6,C,minFame:8})}
+function searchPlayers(q){q=norm(q.trim());if(q.length<2)return[];const C=customC(),out=[];
+  for(let i=0;i<NP&&out.length<8;i++){const n=norm(P[i][0]);if(!(n.startsWith(q)||n.includes(" "+q)||(q.length>3&&n.includes(q))))continue;
+    if(C.fr&&!PT[i].some(ti=>inTeams(ti,C)))continue;out.push(i)}return out}
+
+// Baseball cards: stats live in 50 shard files and load only when a card opens.
+const CARDS={};
+function loadCard(i){const k=i%50;if(!CARDS[k])CARDS[k]=fetch("cards/"+k+".json").then(r=>r.json()).catch(e=>{delete CARDS[k];throw e});return CARDS[k].then(d=>d[i]||{})}
+function openCard(i,tab){S.cardP=i;$("#cardov").hidden=false;$("#cardbody").innerHTML=`<div class="bbhead"><div class="bbname">${esc(P[i][0])}</div></div><div class="cload">Pulling the card…</div>`;
+  loadCard(i).then(c=>{if(S.cardP===i)renderCard(i,c,tab)}).catch(()=>{$("#cardbody").innerHTML+='<div class="cload">The card did not load. Close it and try again.</div>'})}
+function closeCard(){$("#cardov").hidden=true;S.cardP=null}
+const rate=(n,d,dig=3)=>d>0?(n/d).toFixed(dig).replace(/^0(?=\.)/,""):"—";
+const ipTxt=o=>Math.floor(o/3)+"."+(o%3);
+function renderCard(i,c,tab){
+  const hasB=!!(c.b&&c.b.some(r=>r[3]>0)),hasP=!!(c.p&&c.p.length),bio=c.bio||{},as=new Set(c.as||[]);
+  const gP=hasP?c.p.reduce((n,r)=>n+r[4],0):0,gB=hasB?c.b.reduce((n,r)=>n+r[2],0)-gP:0,prim=hasP&&(!hasB||gP>=gB)?"p":"b";
+  tab=tab||prim;const tabs=prim==="p"?[["p","Pitching"],["b","Batting"]]:[["b","Batting"],["p","Pitching"]];
+  const yr=y=>y+(as.has(y)?'<span class="star" title="All-Star">★</span>':"");
+  let table="";
+  if(tab==="b"&&c.b){const tot=Array(15).fill(0);
+    const row=(r,lbl)=>{const ab=r[3],h=r[5],bb=r[11],hbp=r[13],sf=r[14],tb=h+r[6]+2*r[7]+3*r[8];
+      return`<tr><th>${lbl}</th><td>${r[1]||""}</td><td>${r[2]}</td><td>${ab}</td><td>${r[4]}</td><td>${h}</td><td>${r[6]}</td><td>${r[7]}</td><td>${r[8]}</td><td>${r[9]}</td><td>${r[10]}</td><td>${bb}</td><td>${r[12]}</td><td>${rate(h,ab)}</td><td>${rate(h+bb+hbp,ab+bb+hbp+sf)}</td><td>${rate(tb,ab)}</td></tr>`};
+    const body=c.b.map(r=>{for(let k=2;k<15;k++)tot[k]+=r[k];return row(r,yr(r[0]))}).join("");
+    tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>G</th><th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>SB</th><th>BB</th><th>SO</th><th>AVG</th><th>OBP</th><th>SLG</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career")}</tfoot></table>`}
+  if(tab==="p"&&c.p){const tot=Array(12).fill(0);
+    const row=(r,lbl)=>{const o=r[7];return`<tr><th>${lbl}</th><td>${r[1]||""}</td><td>${r[2]}</td><td>${r[3]}</td><td>${o?(r[9]*27/o).toFixed(2):"—"}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${ipTxt(o)}</td><td>${r[8]}</td><td>${r[10]}</td><td>${r[11]}</td><td>${o?((r[8]+r[10])*3/o).toFixed(2):"—"}</td></tr>`};
+    const body=c.p.map(r=>{for(let k=2;k<12;k++)tot[k]+=r[k];return row(r,yr(r[0]))}).join("");
+    tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>W</th><th>L</th><th>ERA</th><th>G</th><th>GS</th><th>SV</th><th>IP</th><th>H</th><th>BB</th><th>SO</th><th>WHIP</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career")}</tfoot></table>`}
+  const facts=[bio.pos&&["Position",bio.pos],(bio.bats||bio.throws)&&["Bats/Throws",(bio.bats||"?")+"/"+(bio.throws||"?")],(bio.ht||bio.wt)&&["Ht/Wt",[bio.ht,bio.wt&&bio.wt+" lbs"].filter(Boolean).join(", ")],bio.born&&["Born",bio.born],bio.from&&["Hometown",bio.from]].filter(Boolean);
+  $("#cardbody").innerHTML=`<div class="bbhead"><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div></div>
+    <div class="bbbio">${facts.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div>
+    ${hasB&&hasP?`<div class="bbtabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-ctab="${k}" aria-selected="${tab===k}">${l}</button>`).join("")}</div>`:`<div class="bbtabs single"><span>${tab==="p"?"Pitching":"Batting"}</span></div>`}
+    <div class="bbscroll">${table||'<div class="cload">No stats on record.</div>'}</div>
+    <div class="bbfoot">${as.size?'<span>★ All-Star season</span>':"<span></span>"}<a href="${bref(i)}" target="_blank" rel="noopener">Baseball-Reference ↗</a></div>`;
+  document.querySelectorAll("[data-ctab]").forEach(b=>b.onclick=()=>renderCard(i,c,b.dataset.ctab));
+}
+$("#cardclose").onclick=closeCard;$("#cardov").onclick=e=>{if(e.target.id==="cardov")closeCard()};
+addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#cardov").hidden)closeCard()});
+
+// Hall of Fame: the players with the most unique teammates
+let HALL=null;
+function hallList(){if(HALL)return HALL;const cnt=new Int32Array(NP),seen=new Int32Array(NP).fill(-1);
+  for(let p=0;p<NP;p++){let n=0;for(const ti of PT[p])for(const q of T[ti][2])if(q!==p&&seen[q]!==p){seen[q]=p;n++}cnt[p]=n}
+  const idx=[...Array(NP).keys()].sort((a,b)=>cnt[b]-cnt[a]).slice(0,25);
+  return HALL=idx.map(p=>({p,n:cnt[p],fr:new Set(PT[p].map(ti=>T[ti][3])).size}))}
+function hallHTML(){const L=hallList();
+  return`<section class="hallhead"><div class="eyebrow">Separation Golf Hall of Fame</div><h2>The Connectors</h2><p>The 25 players with the most different teammates in big-league history. Every one of them is a great place to jump through.</p></section>
+  <div class="plaques">${L.map((x,i)=>`<article class="plaque${i===0?" first":""}"><div class="rk">${i===0?'<span class="goat" role="img" aria-label="GOAT">🐐</span>No. 1':i+1}</div><div class="who2"><div class="pn"><button class="cardlink" data-card="${x.p}">${esc(P[x.p][0])}</button></div><div class="py">${yrs(x.p)}</div></div><div class="stat"><div class="tm">${x.n} <span>teammates</span></div><div class="fr">${x.fr} franchises</div></div></article>`).join("")}</div>`}
+
+// Welcome / how to play, and stats
+function openModal(html){$("#mbody").innerHTML=html;$("#modal").hidden=false;$("#mclose").focus();bindModal()}
+function closeModal(){$("#modal").hidden=true}
+function welcomeHTML(){return`<h2 class="mtitle" id="mtitle">Welcome to Separation Golf</h2>
+  <p>Get from the <b>tee</b> player to the <b>pin</b> player by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
+  <div class="scoring"><b>Eagle</b><span>the shortest route</span><b>Birdie</b><span>one extra jump</span><b>Par</b><span>two extra jumps</span></div>
+  <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> per hole (per round in Daily 9). Scores stop at 10.</p>
+  <ul class="small"><li><b>Daily</b> new at midnight Eastern. Missed one? Open the <b>Archive</b>.</li>
+  <li><b>Daily 9</b> nine holes, tougher as you go.</li>
+  <li><b>Endless</b> choose your next pin, with an optional <b>shot clock</b> (a stroke a minute).</li>
+  <li><b>Custom</b> your players, years, teams and direction.</li>
+  <li><b>Range</b> practice holes, nothing scored.</li></ul>
+  <p class="small">Tap any name for his baseball card. <b>Challenge a friend</b> sends your score to beat.</p>
+  <div class="actions"><button class="btn primary" id="playball">Play ball</button><button class="btn" id="tutor2">Take the tutorial</button></div>
+  <label class="small chk"><input type="checkbox" id="nowelcome" ${store.get("hideWelcome")?"checked":""}> Don't show this when I open the game</label>`}
+function statsHTML(){
+  const recs=[],rounds={};
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith("daily:"))recs.push(store.get(k));
+    else if(k.startsWith("round:")){const [,d,n]=k.split(":");(rounds[d]=rounds[d]||[])[+n]=store.get(k)}}}catch(e){}
+  let played=0,fin=0,sum=0;const dist={};
+  for(const r of recs){if(!r||!r.done||r.par==null)continue;played++;const t=r.gaveUp?"Picked up":term(r.strokes-r.par,r.strokes);dist[t]=(dist[t]||0)+1;if(!r.gaveUp){fin++;sum+=r.strokes-r.par}}
+  const ok=d=>{const r=store.get("daily:"+d);return r&&r.done&&!r.gaveUp&&!r.late};
+  let d=etDate();if(!ok(d))d=prevDay(d);let streak=0;while(ok(d)){streak++;d=prevDay(d)}
+  const days=recs.length?Object.keys(rounds):[];let best=0;
+  try{const ds=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith("daily:")&&ok(k.slice(6)))ds.push(k.slice(6))}ds.sort();let run=0,prev=null;
+    for(const x of ds){run=prev&&prevDay(x)===prev?run+1:1;best=Math.max(best,run);prev=x}}catch(e){}
+  const full=Object.values(rounds).filter(a=>a.length===9&&a.every(r=>r&&r.done)).map(a=>roundTotals(a)),bestR=full.length?Math.min(...full.map(t=>t.st-t.par)):null;
+  const order=["Hole in one","Eagle","Birdie","Par","Bogey","Double bogey","Triple bogey"],keys=[...order.filter(k=>dist[k]),...Object.keys(dist).filter(k=>!order.includes(k)&&k!=="Picked up"),...(dist["Picked up"]?["Picked up"]:[])];
+  const max=Math.max(1,...Object.values(dist));
+  return`<h2 class="mtitle" id="mtitle">Your stats</h2>
+  <div class="tiles"><div class="tile"><b>${played}</b><span>Dailies</span></div><div class="tile"><b>${played?Math.round(fin/played*100):0}%</b><span>Holed out</span></div><div class="tile"><b>${streak}</b><span>Streak</span></div><div class="tile"><b>${best}</b><span>Best streak</span></div></div>
+  <p class="small">${fin?`Average on the Daily: ${relTxt(Math.round(sum/fin*10)/10)} to par.`:"Finish a Daily to start your record."} ${full.length?`Daily 9 rounds finished: ${full.length}, best ${relTxt(bestR)}.`:""}</p>
+  ${keys.length?`<h3>Daily scores</h3><div class="bars">${keys.map(k=>`<span>${k}</span><div class="bar" style="width:${Math.round(dist[k]/max*100)}%"></div><span>${dist[k]}</span>`).join("")}</div>`:""}
+  <p class="small muted">Stats are saved on this device.</p>`}
+function bindModal(){const t2=$("#tutor2");if(t2)t2.onclick=()=>{closeModal();startTutor();render();window.scrollTo({top:0})};document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{closeModal();S.mode="daily";startDaily(b.dataset.day);render();window.scrollTo({top:0})});
+  const pb=$("#playball");if(pb)pb.onclick=closeModal;const nw=$("#nowelcome");if(nw)nw.onchange=()=>store.set("hideWelcome",nw.checked)}
+$("#mclose").onclick=closeModal;$("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
+addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#modal").hidden)closeModal()});
+$("#openhelp").onclick=()=>openModal(welcomeHTML());
+$("#opentutor").onclick=()=>{startTutor();render();window.scrollTo({top:0})};
+$("#openstats").onclick=()=>openModal(statsHTML());
+$("#openhall").onclick=()=>{S.mode="hall";["daily","round","endless","custom","range"].forEach(k=>$("#m-"+k).setAttribute("aria-pressed","false"));render();window.scrollTo({top:0})};
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2400)}
+async function copy(text,boxId){try{await navigator.clipboard.writeText(text);toast("Copied")}catch(e){const b=$("#"+(boxId||"sharebox"));if(b){const r=document.createRange();r.selectNodeContents(b);const s=getSelection();s.removeAllRanges();s.addRange(r)}toast("Text selected. Copy it to share")}}
+function keepFocus(id,fn){const el=$("#"+id),pos=el.selectionStart;fn();render();const n=$("#"+id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}}
+
+function bindCards(){document.querySelectorAll("[data-card]").forEach(b=>b.onclick=e=>{e.stopPropagation();openCard(+b.dataset.card)})}
+function bind(){bindCards();
+  document.querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{const ti=+b.dataset.team;S.open=S.open===ti?-1:ti;S.filter="";render();const r=document.querySelector(".roster");r&&r.scrollIntoView({block:"nearest",behavior:"smooth"})});
+  document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>jump(+b.dataset.p,+b.dataset.t));
+  document.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{S.diff=b.dataset.diff;startEndless();render()});
+  document.querySelectorAll("[data-rh]").forEach(b=>b.onclick=()=>{startRound(+b.dataset.rh);render()});
+  document.querySelectorAll("[data-fr]").forEach(b=>b.onclick=()=>{const f=+b.dataset.fr,a=S.custom.fr;S.custom.fr=a.includes(f)?a.filter(x=>x!==f):[...a,f];render()});
+  const rf=$("#rfilter");if(rf)rf.oninput=()=>keepFocus("rfilter",()=>S.filter=rf.value);
+  const ts=$("#tsearch");if(ts)ts.oninput=()=>keepFocus("tsearch",()=>S.tq=ts.value);
+  const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};
+  on("hint",hint);on("back",back);on("mull",mulligan);on("giveup",giveUp);
+  document.querySelectorAll("[data-peek]").forEach(b=>b.onclick=()=>{S.peek[b.dataset.peek]=!S.peek[b.dataset.peek];render()});
+  on("share",()=>copy(shareText()));
+  on("roundshare",()=>{const res=roundState(),t=roundTotals(res);copy(roundShare(res,t.st,t.par),"roundbox")});
+  on("chal",()=>copy(challengeMsg()));
+  on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
+  on("toround",()=>setMode("round"));
+  on("tutdaily",()=>setMode("daily"));on("tutrange",()=>setMode("range"));
+  on("nextball",()=>{startRange();render();window.scrollTo({top:0,behavior:"smooth"})});
+  on("archive",()=>openModal(archiveHTML()));
+  document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const pk=S.hole.pick,o=pk.opts[+b.dataset.pin];newHole(pk.a,o.b,"endless",{diff:S.diff},{...S.range},null,"keep");render();window.scrollTo({top:0,behavior:"smooth"})});
+  on("nexthole",()=>{startRound(S.rd.idx+1);render();window.scrollTo({top:0,behavior:"smooth"})});
+  on("toscore",()=>window.scrollTo({top:0,behavior:"smooth"}));
+  on("cplay",()=>{const[a,b]=customPair();newHole(a,b,"custom",{},customC(),null,S.dir);render();const hc=document.querySelector(".hole");hc&&hc.scrollIntoView({behavior:"smooth",block:"start"})});
+  document.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>{S.dir=b.dataset.dir;store.set("dir",S.dir);if(S.mode==="endless")startEndless();render()});
+  on("frold",()=>{S.custom.showOld=!S.custom.showOld;render()});
+  on("frclear",()=>{S.custom.fr=[];render()});
+  const co=$("#clockon");if(co)co.onchange=()=>{S.clockOn=co.checked;store.set("clock",S.clockOn);if(S.hole&&!S.hole.done&&(S.hole.kind==="endless"||S.hole.kind==="custom")){if(S.clockOn)S.hole.clock={t0:Date.now(),ticks:0};else delete S.hole.clock}render()};
+  const to=$("#teamon");if(to)to.onchange=()=>{S.custom.teamOn=to.checked;render()};
+  const setRange=(from,to,strict)=>{if(from>to)[from,to]=[to,from];S.range={from,to,strict};store.set("range",S.range);if(S.mode==="endless")startEndless();render()};
+  document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{const[a,c]=b.dataset.preset.split("-").map(Number);setRange(a,c,S.range.strict)});
+  const rf2=$("#rfrom"),rt=$("#rto"),rs=$("#rstrict");
+  if(rf2){rf2.onchange=()=>setRange(+rf2.value,+rt.value,rs.checked);rt.onchange=rf2.onchange;rs.onchange=rf2.onchange}
+  ["a","b"].forEach(k=>{const inp=$("#c"+k),box=$("#s"+k);if(!inp)return;
+    inp.oninput=()=>{S.custom[k]=null;const r=searchPlayers(inp.value);box.hidden=!r.length;box.innerHTML=r.map(i=>`<button data-pick="${i}"><span>${esc(P[i][0])}</span><span class="muted small">${yrs(i)}</span></button>`).join("");
+      box.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{S.custom[k]=+b.dataset.pick;render()})}});
+}
+
+function setMode(m){S.mode=m;
+  if(m==="daily")startDaily();
+  else if(m==="round")startRound();
+  else if(m==="endless"){if(!S.hole||S.hole.kind!=="endless")startEndless()}
+  else if(m==="range"){if(!S.hole||S.hole.kind!=="range")startRange()}
+  render();window.scrollTo({top:0})}
+["daily","round","endless","custom","range"].forEach(k=>$("#m-"+k).onclick=()=>setMode(k));
+
+function fromHash(){const m=location.hash.match(/^#ch\.([a-z0-9]+)\.([a-z0-9]+)((?:\.[a-z0-9-]+)*)$/i);if(!m)return false;
+  const a=ID2.get(m[1]),b=ID2.get(m[2]);if(a==null||b==null||a===b)return false;
+  let C=null,rival=null;for(const seg of m[3].split(".").filter(Boolean)){const y=seg.match(/^y(\d{4})-(\d{4})$/),t=seg.match(/^t([\d-]+)$/),r=seg.match(/^r(\d+)-([a-z0-9-]+)$/i);
+    if(r){const ids=r[2].split("-").map(x=>ID2.get(x));if(ids.length&&ids.every(x=>x!=null)&&ids[ids.length-1]===b)rival={strokes:+r[1],ids}}
+    if(y){C=C||{from:MINY,to:MAXY,strict:true};C.from=+y[1];C.to=+y[2]}
+    if(t){C=C||{from:MINY,to:MAXY,strict:true};C.fr=t[1].split("-").map(Number).filter(n=>n<FR.length)}}
+  S.mode="custom";S.custom.a=a;S.custom.b=b;if(C&&C.fr){S.custom.teamOn=true;S.custom.fr=[...C.fr]}
+  newHole(a,b,"custom",{},C,null,"keep");S.hole.rival=rival;render();return true}
+
+try{if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
+fetch("data.json").then(r=>r.json()).then(d=>{
+  P=d.players;TN=d.teamNames;T=d.teams;FR=d.franchises;NP=P.length;NT=T.length;
+  PT=Array.from({length:NP},()=>[]);T.forEach((t,i)=>t[2].forEach(p=>PT[p].push(i)));
+  ID2=new Map(P.map((p,i)=>[p[3],i]));
+  if(!fromHash()){startDaily();render()}
+  addEventListener("hashchange",fromHash);
+  if(!store.get("hideWelcome"))openModal(welcomeHTML());
+}).catch(e=>{console.error(e);$("#main").innerHTML='<div class="card loading">The roster data did not load. Reload the page to try again.</div>'});
+</script>
