@@ -263,7 +263,7 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .bbt tbody th{font-weight:700}
 .bbt tbody td,.bbt tbody th{color:var(--cb-ink)}
 .bbt tfoot td,.bbt tfoot th{color:var(--cb-on-band)}
-.bbt .wcol{font-weight:700}
+.bbt td.lead{font-weight:800}
 .bbt td:nth-child(2){text-align:left;font-family:var(--mono);font-size:11.5px}
 .bbt tfoot tr{background:var(--cb-edge);color:var(--cb-on-band);font-weight:700}
 .bbt thead th:first-child{background:var(--cb-ink)}
@@ -839,24 +839,25 @@ function renderCard(i,c,tab){
   const hasB=!!(c.b&&c.b.some(r=>r[3]>0)),hasP=!!(c.p&&c.p.length),bio=c.bio||{},as=new Set(c.as||[]);
   const gP=hasP?c.p.reduce((n,r)=>n+r[4],0):0,gB=hasB?c.b.reduce((n,r)=>n+r[2],0)-gP:0,prim=hasP&&(!hasB||gP>=gB)?"p":"b";
   tab=tab||prim;const tabs=prim==="p"?[["p","Pitching"],["b","Batting"]]:[["b","Batting"],["p","Pitching"]];
-  const wt=v=>`<td class="wcol">${v==null?"—":v.toFixed(1)}</td>`,wsum=a=>a?a.reduce((n,v)=>n+(v||0),0):null;
+  // League leaders are bold, like Baseball-Reference (c.lb / c.lp from tools/leaders.py).
+  const cell=(L,k,v)=>`<td${L&&L.includes(k)?' class="lead"':""}>${v}</td>`,wt=(v,L)=>cell(L,"war",v==null?"—":v.toFixed(1)),wsum=a=>a?a.reduce((n,v)=>n+(v||0),0):null;
   const yr=y=>y+(as.has(y)?'<span class="star" title="All-Star">★</span>':"");
   let table="";
   if(tab==="b"&&c.b){const tot=Array(15).fill(0);
-    const W=c.bw;const row=(r,lbl,wv)=>{const ab=r[3],h=r[5],bb=r[11],hbp=r[13],sf=r[14],tb=h+r[6]+2*r[7]+3*r[8];
-      return`<tr><th>${lbl}</th><td>${r[1]||""}</td><td>${r[2]}</td>${W?wt(wv):""}<td>${ab}</td><td>${r[4]}</td><td>${h}</td><td>${r[6]}</td><td>${r[7]}</td><td>${r[8]}</td><td>${r[9]}</td><td>${r[10]}</td><td>${bb}</td><td>${r[12]}</td><td>${rate(h,ab)}</td><td>${rate(h+bb+hbp,ab+bb+hbp+sf)}</td><td>${rate(tb,ab)}</td></tr>`};
-    const body=c.b.map((r,j)=>{for(let k=2;k<15;k++)tot[k]+=r[k];return row(r,yr(r[0]),W&&W[j])}).join("");
-    tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>G</th>${W?"<th>WAR</th>":""}<th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>SB</th><th>BB</th><th>SO</th><th>AVG</th><th>OBP</th><th>SLG</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career",wsum(W))}</tfoot></table>`}
+    const W=c.bw;const row=(r,lbl,wv,L)=>{const ab=r[3],h=r[5],bb=r[11],hbp=r[13],sf=r[14],tb=h+r[6]+2*r[7]+3*r[8];
+      return`<tr><th>${lbl}</th><td>${r[1]||""}</td>${W?wt(wv,L):""}${cell(L,"g",r[2])}${cell(L,"ab",ab)}${cell(L,"r",r[4])}${cell(L,"h",h)}${cell(L,"2b",r[6])}${cell(L,"3b",r[7])}${cell(L,"hr",r[8])}${cell(L,"rbi",r[9])}${cell(L,"sb",r[10])}${cell(L,"bb",bb)}${cell(L,"so",r[12])}${cell(L,"avg",rate(h,ab))}${cell(L,"obp",rate(h+bb+hbp,ab+bb+hbp+sf))}${cell(L,"slg",rate(tb,ab))}</tr>`};
+    const LB=c.lb||{},body=c.b.map((r,j)=>{for(let k=2;k<15;k++)tot[k]+=r[k];return row(r,yr(r[0]),W&&W[j],LB[r[0]])}).join("");
+    tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th>${W?"<th>WAR</th>":""}<th>G</th><th>AB</th><th>R</th><th>H</th><th>2B</th><th>3B</th><th>HR</th><th>RBI</th><th>SB</th><th>BB</th><th>SO</th><th>AVG</th><th>OBP</th><th>SLG</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career",wsum(W))}</tfoot></table>`}
   if(tab==="p"&&c.p){const tot=Array(12).fill(0);
-    const W=c.pw;const row=(r,lbl,wv)=>{const o=r[7];return`<tr><th>${lbl}</th><td>${r[1]||""}</td><td>${r[2]}</td><td>${r[3]}</td><td>${o?(r[9]*27/o).toFixed(2):"—"}</td><td>${r[4]}</td>${W?wt(wv):""}<td>${r[5]}</td><td>${r[6]}</td><td>${ipTxt(o)}</td><td>${r[8]}</td><td>${r[10]}</td><td>${r[11]}</td><td>${o?((r[8]+r[10])*3/o).toFixed(2):"—"}</td></tr>`};
-    const body=c.p.map((r,j)=>{for(let k=2;k<12;k++)tot[k]+=r[k];return row(r,yr(r[0]),W&&W[j])}).join("");
-    tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>W</th><th>L</th><th>ERA</th><th>G</th>${W?"<th>WAR</th>":""}<th>GS</th><th>SV</th><th>IP</th><th>H</th><th>BB</th><th>SO</th><th>WHIP</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career",wsum(W))}</tfoot></table>`}
+    const W=c.pw;const row=(r,lbl,wv,L)=>{const o=r[7];return`<tr><th>${lbl}</th><td>${r[1]||""}</td>${cell(L,"w",r[2])}${cell(L,"l",r[3])}${cell(L,"era",o?(r[9]*27/o).toFixed(2):"—")}${W?wt(wv,L):""}${cell(L,"g",r[4])}${cell(L,"gs",r[5])}${cell(L,"sv",r[6])}${cell(L,"ip",ipTxt(o))}${cell(L,"h",r[8])}${cell(L,"bb",r[10])}${cell(L,"so",r[11])}${cell(L,"whip",o?((r[8]+r[10])*3/o).toFixed(2):"—")}</tr>`};
+    const LP=c.lp||{},body=c.p.map((r,j)=>{for(let k=2;k<12;k++)tot[k]+=r[k];return row(r,yr(r[0]),W&&W[j],LP[r[0]])}).join("");
+    tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>W</th><th>L</th><th>ERA</th>${W?"<th>WAR</th>":""}<th>G</th><th>GS</th><th>SV</th><th>IP</th><th>H</th><th>BB</th><th>SO</th><th>WHIP</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career",wsum(W))}</tfoot></table>`}
   const facts=[bio.pos&&["Position",bio.pos],(bio.bats||bio.throws)&&["Bats/Throws",(bio.bats||"?")+"/"+(bio.throws||"?")],(bio.ht||bio.wt)&&["Ht/Wt",[bio.ht,bio.wt&&bio.wt+" lbs"].filter(Boolean).join(", ")],bio.born&&["Born",bio.born],bio.from&&["Hometown",bio.from]].filter(Boolean);
   $("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div>${c.war!=null?`<div class="bbwar"><b>${c.war.toFixed(1)}</b> career WAR</div>`:""}</div></div>
     <div class="bbbio">${facts.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div>
     ${hasB&&hasP?`<div class="bbtabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-ctab="${k}" aria-selected="${tab===k}">${l}</button>`).join("")}</div>`:`<div class="bbtabs single"><span>${tab==="p"?"Pitching":"Batting"}</span></div>`}
     <div class="bbscroll">${table||'<div class="cload">No stats on record.</div>'}</div>
-    <div class="bbfoot">${as.size?'<span>★ All-Star season</span>':"<span></span>"}<span>${c.war!=null?"WAR via ":""}<a href="${bref(i)}" target="_blank" rel="noopener">Baseball-Reference ↗</a></span></div>`;
+    <div class="bbfoot">${as.size||c.lb||c.lp?`<span>${as.size?"★ All-Star season":""}${as.size&&(c.lb||c.lp)?" · ":""}${c.lb||c.lp?"<b>Bold</b> = led league":""}</span>`:"<span></span>"}<span>${c.war!=null?"WAR via ":""}<a href="${bref(i)}" target="_blank" rel="noopener">Baseball-Reference ↗</a></span></div>`;
   document.querySelectorAll("[data-ctab]").forEach(b=>b.onclick=()=>renderCard(i,c,b.dataset.ctab));
 }
 $("#cardclose").onclick=closeCard;$("#cardov").onclick=e=>{if(e.target.id==="cardov")closeCard()};
