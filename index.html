@@ -245,6 +245,8 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .bbname{font-family:var(--display);font-size:24px;line-height:1.05;text-transform:uppercase}
 .bbsub{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
 .bbsub .hof{color:var(--cb-gold)}
+.bbwar{margin-top:6px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.bbwar b{font-family:var(--body);font-size:24px;letter-spacing:0;margin-right:4px;font-variant-numeric:lining-nums}
 .bbbio{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;font-size:13px;border-bottom:2px solid var(--cb-ink);padding-bottom:8px}
 .bbbio span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
 .bbbio b{font-weight:600}
@@ -838,11 +840,11 @@ function renderCard(i,c,tab){
     const body=c.p.map(r=>{for(let k=2;k<12;k++)tot[k]+=r[k];return row(r,yr(r[0]))}).join("");
     tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>W</th><th>L</th><th>ERA</th><th>G</th><th>GS</th><th>SV</th><th>IP</th><th>H</th><th>BB</th><th>SO</th><th>WHIP</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career")}</tfoot></table>`}
   const facts=[bio.pos&&["Position",bio.pos],(bio.bats||bio.throws)&&["Bats/Throws",(bio.bats||"?")+"/"+(bio.throws||"?")],(bio.ht||bio.wt)&&["Ht/Wt",[bio.ht,bio.wt&&bio.wt+" lbs"].filter(Boolean).join(", ")],bio.born&&["Born",bio.born],bio.from&&["Hometown",bio.from]].filter(Boolean);
-  $("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div></div></div>
+  $("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div>${c.war!=null?`<div class="bbwar"><b>${c.war.toFixed(1)}</b> career WAR</div>`:""}</div></div>
     <div class="bbbio">${facts.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div>
     ${hasB&&hasP?`<div class="bbtabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-ctab="${k}" aria-selected="${tab===k}">${l}</button>`).join("")}</div>`:`<div class="bbtabs single"><span>${tab==="p"?"Pitching":"Batting"}</span></div>`}
     <div class="bbscroll">${table||'<div class="cload">No stats on record.</div>'}</div>
-    <div class="bbfoot">${as.size?'<span>★ All-Star season</span>':"<span></span>"}<a href="${bref(i)}" target="_blank" rel="noopener">Baseball-Reference ↗</a></div>`;
+    <div class="bbfoot">${as.size?'<span>★ All-Star season</span>':"<span></span>"}<span>${c.war!=null?"WAR via ":""}<a href="${bref(i)}" target="_blank" rel="noopener">Baseball-Reference ↗</a></span></div>`;
   document.querySelectorAll("[data-ctab]").forEach(b=>b.onclick=()=>renderCard(i,c,b.dataset.ctab));
 }
 $("#cardclose").onclick=closeCard;$("#cardov").onclick=e=>{if(e.target.id==="cardov")closeCard()};
