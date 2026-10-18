@@ -417,8 +417,8 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
         <button id="m-range" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="8" r="1" fill="currentColor"/><circle cx="13.5" cy="8.5" r="1" fill="currentColor"/><circle cx="11.5" cy="11.5" r="1" fill="currentColor"/><path d="M12 17v4M9 21h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Range</span></button>
     </div>
   </header>
-  <main id="main"><div class="card loading">Loading every big-league roster, 1871–2025…</div></main>
-  <footer>Fan-made, not affiliated with Major League Baseball. Rosters from the Lahman Baseball Database, 1871–2025 seasons.</footer>
+  <main id="main"><div class="card loading">Loading every big-league roster, 1871–2026…</div></main>
+  <footer>Fan-made, not affiliated with Major League Baseball. Rosters from the Lahman Baseball Database (1871–2025) and MLB (2026). WAR from Baseball-Reference.</footer>
 </div>
 <div class="modal" id="modal" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="mtitle"><button class="x" id="mclose" aria-label="Close">×</button><div class="stack" id="mbody"></div></div></div>
 <div class="modal" id="cardov" hidden><div class="bbcard" role="dialog" aria-modal="true" aria-label="Baseball card"><button class="x" id="cardclose" aria-label="Close card">×</button><div id="cardbody"></div></div></div>
@@ -427,7 +427,7 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
 <script>
 const BASE_URL = "https://dompescamedia.github.io/separation-golf/";
 const LAUNCH = "2026-10-15";
-const MINY = 1871, MAXY = 2025;
+const MINY = 1871, MAXY = 2026;
 let P, TN, T, PT, NP, NT, FR, ID2;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -527,12 +527,15 @@ const played70s=i=>PT[i].some(ti=>T[ti][0]>=1970&&T[ti][0]<=1979);
 // Daily 9: well-known All-Stars from the 1970s tee off (true legends allowed on holes 5 and 9); the pin played recently.
 const roundTee=(i,legends)=>(played70s(i)&&P[i][4]>=18)||(legends&&P[i][2]<1970&&P[i][4]>=50);
 const roundPin=i=>P[i][2]>=2018&&P[i][4]>=14;
-function roundPlan(d,i){const k=d+":"+i;if(PLAN[k])return PLAN[k];const [lo,hi]=ROUND_BANDS[i];
+// Daily 9 holes pinned by date. 2026-10-18 is frozen to what it was before 2026 rosters were added mid-day.
+const ROUND_SET={"2026-10-18":"morrija02>cabreas01 dawsoan01>acunaro01 robinbr01>harpebr03 brettge01>blackch02 boudrlo01>freemfr01 benchjo01>zobribe01 raineti01>lindofr01 robinfr02>judgeaa01 aaronha01>skenepa01"};
+function roundPlan(d,i){const k=d+":"+i;if(PLAN[k])return PLAN[k];
+  if(ROUND_SET[d]){const pr=ROUND_SET[d].split(" ")[i].split(">").map(x=>ID2.get(x));if(pr.every(x=>x!=null))return PLAN[k]={pair:pr,C:null}}const [lo,hi]=ROUND_BANDS[i];
   // No player appears twice in a day's Daily 9 or in that day's Daily.
   const used=new Set(dailyPlan(d).pair);for(let j=0;j<i;j++)roundPlan(d,j).pair.forEach(x=>used.add(x));
   return PLAN[k]={pair:pickPair(rngFrom("round2:"+k),{lo,hi,teeOk:p=>!used.has(p)&&roundTee(p,i===4||i===8),pinOk:p=>!used.has(p)&&roundPin(p)}),C:null}}
 const DIFFS={easy:{label:"Easy",lo:2,hi:2},medium:{label:"Medium",lo:3,hi:3},hard:{label:"Hard",lo:4,hi:5},legend:{label:"Legend",lo:6,hi:12}};
-const PRESETS=[["All time",MINY,MAXY],["Since 2000",2000,MAXY],["1980–2025",1980,MAXY],["1950–1999",1950,1999],["Before 1950",MINY,1949]];
+const PRESETS=[["All time",MINY,MAXY],["Since 2000",2000,MAXY],["1980–2026",1980,MAXY],["1950–1999",1950,1999],["Before 1950",MINY,1949]];
 const S={hallOpen:new Set(),hallQ:{},hallT:{},clockOn:!!store.get("clock"),dir:store.get("dir")==="young"?"young":"old",mode:"daily",hole:null,open:-1,filter:"",tq:"",peek:{},diff:"medium",tally:{holes:0,over:0},rd:null,
   custom:{a:null,b:null,teamOn:false,fr:[],showOld:false},range:Object.assign({from:MINY,to:MAXY,strict:true},store.get("range")||{})};
 
@@ -636,7 +639,7 @@ const HS=i=>{const m=P[i][9];return m?`https://img.mlbstatic.com/mlb-photos/imag
 const face=(i,cls)=>{const u=HS(i);return`<span class="face ${cls||""}" aria-hidden="true">${u?`<img src="${u}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span>`};
 const yrs=i=>P[i][1]===P[i][2]?String(P[i][1]):P[i][1]+"–"+P[i][2];
 const tname=ti=>T[ti][0]+" "+TN[T[ti][1]];
-const bref=i=>{const id=P[i][3];return "https://www.baseball-reference.com/players/"+id[0]+"/"+id+".shtml"};
+const bref=i=>{const id=P[i][3];return id.startsWith("mlb")?"https://www.baseball-reference.com/redirect.fcgi?player=1&mlb_ID="+P[i][9]:"https://www.baseball-reference.com/players/"+id[0]+"/"+id+".shtml"};
 const relTxt=r=>r>0?"+"+r:r<0?String(r):"E";
 
 function limitsLabel(C){if(!C)return"";const bits=[];
