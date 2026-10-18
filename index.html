@@ -443,6 +443,13 @@ function bfs(src,allow){
     for(const v of T[ti][2]){if(dist[v]<0){dist[v]=dist[u]+1;parP[v]=u;parT[v]=ti;q[tl++]=v}}}}
   return {dist,parP,parT};
 }
+// Of all routes tied for shortest, the one whose players add up to the most career WAR (players[i][10], tenths). Dom, 2026-10-18.
+function warPath(a,b,allow){const db=bfs(b,allow).dist;if(db[a]<0)return null;
+  const W=p=>P[p][10]||0,memo=new Map(),nxt=new Map();
+  const f=v=>{if(v===b)return W(b);if(memo.has(v))return memo.get(v);let best=-Infinity,bn=null;
+    for(const ti of PT[v]){if(allow&&!allow[ti])continue;for(const u of T[ti][2])if(db[u]===db[v]-1){const s=f(u);if(s>best){best=s;bn={p:u,t:ti}}}}
+    const r=W(v)+best;memo.set(v,r);nxt.set(v,bn);return r};
+  const total=f(a),out=[];let v=a;while(v!==b){const n=nxt.get(v);out.push(n);v=n.p}out.war=total/10;return out}
 function shortestPath(a,b,allow){const r=bfs(a,allow);if(r.dist[b]<0)return null;const out=[];let v=b;
   while(v!==a){out.push({p:v,t:r.parT[v]});v=r.parP[v]}out.reverse();return out}
 
@@ -718,10 +725,10 @@ function rosterHTML(ti,u,seen){
 }
 function resultHTML(){
   if(S.hole.kind==="tutor")return"";
-  const h=S.hole,rel=h.strokes-h.par,best=shortestPath(h.a,h.b,h.allow);
+  const h=S.hole,rel=h.strokes-h.par,best=warPath(h.a,h.b,h.allow);
   if(h.kind==="range"){const pl=steps=>`<ol>${steps.map(st=>`<li><button class="cardlink tb" data-card="${st.p}">${esc(P[st.p][0])}</button>${st.t>=0?` <span class="muted small">· ${esc(tname(st.t))}</span>`:""}</li>`).join("")}</ol>`;
     return`<section class="card result" aria-live="polite"><div class="eyebrow">${h.gaveUp?"Here's the way":"Holed out"}</div><div class="term">${h.gaveUp?"Next one":h.trail.length-1===h.best?"Pured it":"In the hole"}</div>
-    <div class="paths"><div><div class="eyebrow">A shortest route</div>${pl([{p:h.a,t:-1},...best])}</div></div>
+    <div class="paths"><div><div class="eyebrow">Best shortest route${best.war?` · ${best.war.toFixed(1)} WAR`:""}</div>${pl([{p:h.a,t:-1},...best])}</div></div>
     <div class="actions" style="margin-top:10px"><button class="btn primary" id="nextball">Next ball</button></div></section>`}
   const t=h.gaveUp?"Picked up":term(rel,h.strokes);
   const pathList=steps=>`<ol>${steps.map(st=>`<li><button class="cardlink tb" data-card="${st.p}">${esc(P[st.p][0])}</button>${st.t>=0?` <span class="muted small">· ${esc(tname(st.t))}</span>`:""}</li>`).join("")}</ol>`;
@@ -740,7 +747,7 @@ function resultHTML(){
     <div class="paths">
       ${h.gaveUp?"":`<div><div class="eyebrow">Your route</div>${pathList(h.trail)}</div>`}
       ${h.rival?`<div><div class="eyebrow">Friend's route · ${h.rival.strokes}</div>${pathList(rivalSteps(h.rival,h.a,h.allow))}</div>`:""}
-      <div><div class="eyebrow">A shortest route</div>${pathList([{p:h.a,t:-1},...best])}</div>
+      <div><div class="eyebrow">Best shortest route${best.war?` · ${best.war.toFixed(1)} WAR`:""}</div>${pathList([{p:h.a,t:-1},...best])}</div>
     </div>
     <div class="sharebox" id="sharebox">${esc(shareText())}</div>
     ${pick}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>

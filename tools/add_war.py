@@ -15,4 +15,9 @@ for f in glob.glob("cards/*.json"):
         if v is None: c.pop("war", None)
         else: c["war"] = v; hit += 1
     json.dump(cards, open(f, "w"), separators=(",", ":"))
+for p in P:
+    v = war(p)
+    while len(p) < 11: p.append(0)
+    p[10] = round(v * 10) if v is not None else 0
+json.dump(data, open("data.json", "w"), separators=(",", ":"))
 print(hit, "of", len(P), "cards have career WAR")
