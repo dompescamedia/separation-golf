@@ -1,0 +1,20 @@
+name: Pull MLB season
+on:
+  workflow_dispatch:
+    inputs:
+      season: {description: "Season", default: "2026"}
+  push:
+    paths: [tools/mlb_season.py, .github/workflows/mlb-season.yml]
+permissions:
+  contents: write
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/mlb_season.py ${{ github.event.inputs.season || '2026' }}
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add raw
+          git diff --cached --quiet || (git commit -m "Pull MLB season stats" && git push)
