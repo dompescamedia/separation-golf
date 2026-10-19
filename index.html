@@ -829,6 +829,12 @@ function rosterHTML(ti,u,seen){
     <input id="rfilter" type="search" placeholder="Search this roster" value="${esc(S.filter)}" autocomplete="off">
     <div class="plist">${ps.map(p=>pbtn(p,ti,seen,(ageIn(p,ti)?"Age "+ageIn(p,ti)+" · ":"")+yrs(p))).join("")||'<span class="small muted">No one matches.</span>'}</div></div>`;
 }
+// Daily and Daily 9 show both ends of the perfect routes (Dom): the most-WAR one and the Deep Cut (least WAR in between). Same route shows once.
+function twoRoutes(h,best,pathList){const st=r=>pathList([{p:h.a,t:-1},...r]);
+  if(h.kind!=="daily"&&h.kind!=="round")return`<div><div class="eyebrow">Best shortest route${best.war?` · ${best.war.toFixed(1)} WAR`:""}</div>${st(best)}</div>`;
+  const lo=h.kind==="daily"?best:warPath(h.a,h.b,h.allow,true),hi=warPath(h.a,h.b,h.allow,false),same=lo.map(x=>x.p).join()===hi.map(x=>x.p).join();
+  if(same)return`<div><div class="eyebrow">The Deep Cut, also the most WAR · ${lo.mid.toFixed(1)} WAR in between</div>${st(lo)}</div>`;
+  return`<div><div class="eyebrow">The Deep Cut · ${lo.mid.toFixed(1)} WAR in between</div>${st(lo)}</div><div><div class="eyebrow">Most WAR · ${hi.mid.toFixed(1)} WAR in between</div>${st(hi)}</div>`}
 function resultHTML(){
   if(S.hole.kind==="tutor")return"";
   const h=S.hole,rel=h.strokes-h.par,best=warPath(h.a,h.b,h.allow,h.kind==="daily");
@@ -854,7 +860,7 @@ function resultHTML(){
     <div class="paths">
       ${h.gaveUp?"":`<div><div class="eyebrow">Your route</div>${pathList(h.trail)}</div>`}
       ${h.rival?`<div><div class="eyebrow">Friend's route · ${h.rival.strokes}</div>${pathList(rivalSteps(h.rival,h.a,h.allow))}</div>`:""}
-      <div><div class="eyebrow">${h.kind==="daily"?`The Deep Cut · ${best.mid.toFixed(1)} WAR`:`Best shortest route${best.war?` · ${best.war.toFixed(1)} WAR`:""}`}</div>${pathList([{p:h.a,t:-1},...best])}</div>
+      ${twoRoutes(h,best,pathList)}
     </div>
     <div class="sharebox" id="sharebox">${esc(shareText())}</div>
     ${pick}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
