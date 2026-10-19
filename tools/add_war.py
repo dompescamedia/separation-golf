@@ -3,8 +3,10 @@
 import json, glob
 data = json.load(open("data.json")); P = data["players"]
 w = json.load(open("war.json"))
+BRID = {P[int(k)][3]: v for k, v in data.get("br", {}).items()}  # Lahman ID -> Baseball-Reference ID where they differ
+def bid(p): return BRID.get(p[3], p[3])
 def pid_of(p):
-    if p[3] in w["bref"]: return p[3]
+    if bid(p) in w["bref"]: return bid(p)
     if p[9] and str(p[9]) in w["mlbpid"]: return w["mlbpid"][str(p[9])]
     return w["namepid"].get(f"{p[0]}|{p[1]}")
 def season_war(rows, src):
@@ -19,7 +21,7 @@ def season_war(rows, src):
         out.append(yr[k][3] if k < len(yr) and len([q for q in rows if q[0] == r[0]]) == len(yr) else None)
     return out
 def war(p):
-    if p[3] in w["bref"]: return w["bref"][p[3]]
+    if bid(p) in w["bref"]: return w["bref"][bid(p)]
     if p[9] and str(p[9]) in w["mlb"]: return w["mlb"][str(p[9])]
     return w["name"].get(f"{p[0]}|{p[1]}")
 hit = 0

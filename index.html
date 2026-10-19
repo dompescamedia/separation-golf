@@ -639,7 +639,8 @@ const HS=i=>{const m=P[i][9];return m?`https://img.mlbstatic.com/mlb-photos/imag
 const face=(i,cls)=>{const u=HS(i);return`<span class="face ${cls||""}" aria-hidden="true">${u?`<img src="${u}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span>`};
 const yrs=i=>P[i][1]===P[i][2]?String(P[i][1]):P[i][1]+"–"+P[i][2];
 const tname=ti=>T[ti][0]+" "+TN[T[ti][1]];
-const bref=i=>{const id=P[i][3];return id.startsWith("mlb")?"https://www.baseball-reference.com/redirect.fcgi?player=1&mlb_ID="+P[i][9]:"https://www.baseball-reference.com/players/"+id[0]+"/"+id+".shtml"};
+let BRID={};
+const bref=i=>{const id=BRID[i]??P[i][3];if(!id)return"https://www.baseball-reference.com/search/search.fcgi?search="+encodeURIComponent(P[i][0]);return id.startsWith("mlb")?"https://www.baseball-reference.com/redirect.fcgi?player=1&mlb_ID="+P[i][9]:"https://www.baseball-reference.com/players/"+id[0]+"/"+id+".shtml"};
 const relTxt=r=>r>0?"+"+r:r<0?String(r):"E";
 
 function limitsLabel(C){if(!C)return"";const bits=[];
@@ -1016,7 +1017,7 @@ function fromHash(){const m=location.hash.match(/^#ch\.([a-z0-9]+)\.([a-z0-9]+)(
 
 try{if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
 fetch("data.json").then(r=>r.json()).then(d=>{
-  P=d.players;TN=d.teamNames;T=d.teams;FR=d.franchises;NP=P.length;NT=T.length;
+  P=d.players;BRID=d.br||{};TN=d.teamNames;T=d.teams;FR=d.franchises;NP=P.length;NT=T.length;
   PT=Array.from({length:NP},()=>[]);T.forEach((t,i)=>t[2].forEach(p=>PT[p].push(i)));
   ID2=new Map(P.map((p,i)=>[p[3],i]));
   launchReset();countVisit();
