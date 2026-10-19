@@ -903,15 +903,15 @@ const scrollHole=()=>{const hc=document.querySelector(".hole");hc&&hc.scrollInto
 // Team history run (Dom, 2026-10-19): start on a franchise's first roster and relay through every season to its last.
 // Each stroke picks a player from the season you're on who was back the next season; you ride him to the end of his unbroken run with the team.
 const RUNY={};
-function runYears(f){if(RUNY[f])return RUNY[f];const m=new Map();for(let ti=0;ti<NT;ti++)if(T[ti][3]===f){const y=T[ti][0];if(!m.has(y))m.set(y,new Set());for(const p of T[ti][2])m.get(y).add(p)}
-  const ys=[...m.keys()].sort((x,y)=>x-y);ys.rost=ys.map(y=>m.get(y));return RUNY[f]=ys}
+function runYears(f){if(RUNY[f])return RUNY[f];const m=new Map(),nm=new Map();for(let ti=0;ti<NT;ti++)if(T[ti][3]===f){const y=T[ti][0];if(!m.has(y)){m.set(y,new Set());nm.set(y,TN[T[ti][1]])}for(const p of T[ti][2])m.get(y).add(p)}
+  const ys=[...m.keys()].sort((x,y)=>x-y);ys.rost=ys.map(y=>m.get(y));ys.names=ys.map(y=>nm.get(y));return RUNY[f]=ys}
 // Index of the last season in p's unbroken run starting at season i (i itself if he wasn't back next season).
 function runEnd(h,i,p){let j=i;while(j+1<h.rost.length&&h.rost[j+1].has(p))j++;return j}
 function runDist(h){const n=h.rost.length,d=new Int16Array(n).fill(-1);d[n-1]=0;
   for(let i=n-2;i>=0;i--){let m=-1;for(const p of h.rost[i]){const j=runEnd(h,i,p);if(j>i&&d[j]>=0&&(m<0||d[j]+1<m))m=d[j]+1}d[i]=m}return d}
 function startRun(){const c=S.custom.run,ys=runYears(c.fr);let k=Math.max(0,ys.findIndex(y=>y>=c.from));if(k<0)k=0;
-  const years=ys.slice(k),rost=ys.rost.slice(k),h={kind:"run",fr:c.fr,years,rost,trail:[{i:0,p:-1}],strokes:0,hints:0,done:false,gaveUp:false,meta:{},hintP:-1};
-  h.d=runDist(h);if(h.d[0]<0){let i=0;while(h.d[i]<0)i++;h.years=years.slice(i);h.rost=rost.slice(i);h.d=runDist(h)}
+  const years=ys.slice(k),rost=ys.rost.slice(k),names=ys.names.slice(k),h={kind:"run",fr:c.fr,years,rost,names,trail:[{i:0,p:-1}],strokes:0,hints:0,done:false,gaveUp:false,meta:{},hintP:-1};
+  h.d=runDist(h);if(h.d[0]<0){let i=0;while(h.d[i]<0)i++;h.years=years.slice(i);h.rost=rost.slice(i);h.names=names.slice(i);h.d=runDist(h)}
   h.best=h.d[0];h.par=h.best+2;S.hole=h;S.filter=""}
 const runAt=h=>h.trail[h.trail.length-1].i;
 function runPick(p){const h=S.hole;if(h.done)return;const i=runAt(h),j=runEnd(h,i,p);
@@ -928,7 +928,7 @@ function runHTML(){const h=S.hole,i=runAt(h),n=h.years.length,first=h.years[0],l
   const legs=h.trail.slice(1).map((e,k)=>{const from=h.trail[k].i;return`<li><button class="cardlink" data-card="${e.p}">${esc(P[e.p][0])}</button> <span class="muted small">· ${h.years[from]}–${h.years[e.i]}</span></li>`}).join("");
   let s=`<section class="card hole run"><div class="row"><div class="eyebrow">Team history run · ${team}</div></div>
     <div class="runbar" role="progressbar" aria-valuemin="${first}" aria-valuemax="${last}" aria-valuenow="${h.years[i]}"><div style="width:${pct}%"></div></div>
-    <div class="runyrs small"><span>${first}</span><b>${h.done?"Made it to "+last:"Now in "+h.years[i]}</b><span>${last}</span></div>
+    <div class="runyrs small"><span>${first}</span><b>${h.done?"Made it to "+last:"Now: "+h.years[i]+" "+esc(h.names[i])}</b><span>${last}</span></div>
     <div class="score" id="scorebox"><div><b>${h.par}</b><span>Par</span></div><div><b>${h.strokes}</b><span>Strokes</span></div><div class="rel"><b class="${rel>0?"over":rel<0?"under":""}">${h.strokes===0?"–":relTxt(rel)}</b><span>To par</span></div></div>`;
   if(legs)s+=`<div><div class="eyebrow">Your relay</div><ol class="small">${legs}</ol></div>`;
   if(h.done){const best=runBest(h);
@@ -938,7 +938,7 @@ function runHTML(){const h=S.hole,i=runAt(h),n=h.years.length,first=h.years[0],l
       <div class="sharebox" id="sharebox">${esc(runShare())}</div>
       <div class="actions"><button class="btn primary" id="share">Copy result</button><button class="btn" id="runagain">Another team</button></div></div></section>`;return s}
   const q=norm(S.filter.trim()),ps=[...h.rost[i]].filter(p=>!q||norm(P[p][0]).includes(q)).sort((x,y)=>P[x][6].localeCompare(P[y][6]));
-  s+=`<div class="small">Pick a player from the <b>${h.years[i]} ${team}</b> who was back in ${h.years[i]+1}. You ride him through his run with the team, then pick again. Reach ${last} in as few picks as you can.</div>
+  s+=`<div class="small">Pick a player from the <b>${h.years[i]} ${esc(h.names[i])}</b> who was back in ${h.years[i]+1}. You ride him through his run with the team, then pick again. Reach ${last} in as few picks as you can.</div>
     <input id="rfilter" type="search" placeholder="Filter the ${h.years[i]} roster" value="${esc(S.filter)}" autocomplete="off">
     <div class="plist">${ps.map(p=>`<button class="pbtn${p===h.hintP?" hinted":""}" data-runp="${p}"><span class="pn">${esc(P[p][0])}</span><span class="py">${yrs(p)}</span></button>`).join("")||'<span class="small muted">No one matches.</span>'}</div>
     <div class="actions"><button class="btn" id="runhint">Hint +1</button><button class="btn" id="runback"${h.trail.length<2?" disabled":""}>Back +1</button><button class="btn" id="runquit">New run</button></div></section>`;
@@ -948,8 +948,8 @@ function runShare(){const h=S.hole,rel=h.strokes-h.par;
 function runSetupHTML(){const c=S.custom.run,by=(x,y)=>FR[x][0].localeCompare(FR[y][0]),list=FR.map((f,i)=>i).filter(i=>FR[i][1]).sort(by);
   const ys=c.fr!=null?runYears(c.fr):null;
   return`<section class="card stack"><div class="eyebrow">Team history run</div>
-    <div class="small muted">Start on a team's first roster and relay player to player through every season to today. Each pick has to be a player who was back the next year, and you ride him through his whole run with the team.</div>
-    <label class="tsel">Team <select id="runteam"><option value="">Pick a team</option>${list.map(i=>`<option value="${i}"${i===c.fr?" selected":""}>${esc(FR[i][0])}</option>`).join("")}</select></label>
+    <div class="small muted">Start on a team's first roster and relay player to player through every season to today. Each pick has to be a player who was back the next year, and you ride him through his whole run with the team. Teams that moved or changed names count as one franchise, so the A's run goes Philadelphia, Kansas City, Oakland.</div>
+    <label class="tsel">Team <select id="runteam"><option value="">Pick a team</option>${list.map(i=>{const n0=runYears(i).names[0];return`<option value="${i}"${i===c.fr?" selected":""}>${esc(FR[i][0])}${n0&&n0!==FR[i][0]?` (began as ${esc(n0)})`:""}</option>`}).join("")}</select></label>
     ${ys?`<div class="eyebrow">Start in</div><div class="diff" role="group" aria-label="Start year">${[["Whole history",ys[0]],...[1950,1970,1990,2000].filter(y=>y>ys[0]).map(y=>["Since "+y,y])].map(([l,y])=>`<button data-runfrom="${y}" aria-pressed="${(c.from||ys[0])===y}">${l}</button>`).join("")}</div>`:""}
     <div class="actions"><button class="btn primary" id="runplay">Start the run</button></div></section>`}
 function customHTML(){const c=S.custom;
@@ -1063,10 +1063,10 @@ function welcomeHTML(){return`<h2 class="mtitle wt" id="mtitle">Welcome to Separ
   <p>Get from the <b>tee</b> player to the <b>pin</b> by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
   <div class="scoring row3"><div><b>Eagle</b><span>shortest route</span></div><div><b>Birdie</b><span>+1 jump</span></div><div><b>Par</b><span>+2 jumps</span></div></div>
   <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> a hole (not on the Daily). Scores stop at 10.</p>
-  <p class="small"><b>Deep Cut rank</b> on the Daily: strokes first, then ties go to the route through the least career WAR. Hole it every day for a <b>streak</b>.</p>
+  <p class="small"><b>Deep Cut rank</b> on the Daily: strokes first, then the least career WAR. Then see how everyone scored. Hole it daily for a <b>streak</b>.</p>
   <ul class="small tight"><li><b>Daily</b> one hole for everyone, new at midnight ET. <b>Hard mode</b> and the <b>Archive</b> are on the Daily bar.</li>
   <li><b>Daily 9</b> nine holes, tougher as you go.</li>
-  <li><b>Endless</b> pick your next pin. <b>Custom</b> set the players, years and teams, or relay through a team's whole history. <b>Range</b> practice, no score.</li></ul>
+  <li><b>Endless</b> pick your next pin. <b>Custom</b> set players, years and teams, or run a team's whole history, moves included. <b>Range</b> practice, no score.</li></ul>
   <p class="small">Tap a name or photo for his baseball card. The <b>HOF</b> has the biggest connectors and longest careers.</p>
   <div class="actions"><button class="btn primary" id="playball">Play ball</button><button class="btn" id="tutor2">Tutorial</button></div>
   <label class="small chk"><input type="checkbox" id="nowelcome" ${store.get("hideWelcome")?"checked":""}> Don't show this when I open the game</label>`}
