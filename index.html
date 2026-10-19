@@ -30,9 +30,24 @@
  function bydate(){var d;try{d=new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",month:"2-digit",day:"2-digit"}).format(new Date())}catch(e){var n=new Date();d=String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0")}
   var md=+d.replace(/\D/g,"");
   return md>=320&&md<=430?"opening":md>=501&&md<=630?"scorecard":md>=701&&md<=731?"midsummer":md>=801&&md<=930?"pennant":md>=1001&&md<=1107?"october":"hotstove"}
- var pick=null;try{pick=localStorage.getItem("sg-season")}catch(e){}
- window.SG_SEASON_AUTO=bydate();
- document.documentElement.setAttribute("data-season",pick&&SEASONS[pick]?pick:window.SG_SEASON_AUTO)})();
+ window.SG_SEASON_AUTO=bydate();document.documentElement.setAttribute("data-season",window.SG_SEASON_AUTO);
+ /* Team colors (Dom): same October look, repainted in a team's colors. Primary = page, a1 = shadow and selected buttons, a2 = byline and pin. */
+ var TEAMS=window.SG_TEAMS={ARI:["Arizona Diamondbacks","#A71930","#000000","#E3D4AD"],ATL:["Atlanta Braves","#13274F","#CE1141","#EAAA00"],BAL:["Baltimore Orioles","#1A1A1A","#DF4601","#DF4601"],BOS:["Boston Red Sox","#0C2340","#BD3039","#BD3039"],CHC:["Chicago Cubs","#0E3386","#CC3433","#CC3433"],CWS:["Chicago White Sox","#27251F","#C4CED4","#C4CED4"],CIN:["Cincinnati Reds","#C6011F","#000000","#000000"],CLE:["Cleveland Guardians","#00385D","#E50022","#E50022"],COL:["Colorado Rockies","#33006F","#C4CED4","#C4CED4"],DET:["Detroit Tigers","#0C2340","#FA4616","#FA4616"],HOU:["Houston Astros","#002D62","#EB6E1F","#F4911E"],KC:["Kansas City Royals","#004687","#BD9B60","#BD9B60"],LAA:["Los Angeles Angels","#003263","#BA0021","#C4CED4"],LAD:["Los Angeles Dodgers","#005A9C","#EF3E42","#A5ACAF"],MIA:["Miami Marlins","#111111","#00A3E0","#EF3340"],MIL:["Milwaukee Brewers","#12284B","#FFC52F","#FFC52F"],MIN:["Minnesota Twins","#002B5C","#D31145","#B9975B"],NYM:["New York Mets","#002D72","#FF5910","#FF5910"],NYY:["New York Yankees","#0C2340","#C4CED3","#C4CED3"],ATH:["Athletics","#003831","#EFB21E","#EFB21E"],PHI:["Philadelphia Phillies","#E81828","#002D72","#002D72"],PIT:["Pittsburgh Pirates","#27251F","#FDB827","#FDB827"],SD:["San Diego Padres","#2F241D","#FFC425","#FFC425"],SF:["San Francisco Giants","#27251F","#FD5A1E","#EFD19F"],SEA:["Seattle Mariners","#0C2C56","#00857C","#C4CED4"],STL:["St. Louis Cardinals","#C41E3A","#0C2340","#FEDB00"],TB:["Tampa Bay Rays","#092C5C","#8FBCE6","#F5D130"],TEX:["Texas Rangers","#003278","#C0111F","#C0111F"],TOR:["Toronto Blue Jays","#134A8E","#E8291C","#E8291C"],WSH:["Washington Nationals","#14225A","#AB0003","#AB0003"]};
+ function hx(c){c=c.replace("#","");return[0,2,4].map(function(i){return parseInt(c.substr(i,2),16)})}
+ function to(r){return"#"+r.map(function(v){v=Math.max(0,Math.min(255,Math.round(v)));return(v<16?"0":"")+v.toString(16)}).join("")}
+ function mix(a,b,t){var x=hx(a),y=hx(b);return to(x.map(function(v,i){return v+(y[i]-v)*t}))}
+ function lum(c){return hx(c).map(function(v){v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)}).reduce(function(s,v,i){return s+v*[.2126,.7152,.0722][i]},0)}
+ function cr(a,b){var x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+ window.SG_APPLY_TEAM=function(k){var st=document.documentElement.style,t=TEAMS[k],names=["--bg","--card","--muted","--line","--fair","--green","--green-ink","--pin","--red","--shadow","--a1","--a2","--hero","--hero-end","--cb-band","--cb-edge","--cb-ink"];
+  names.forEach(function(n){st.removeProperty(n)});if(!t)return;document.documentElement.setAttribute("data-season","october");
+  var bg=t[1],a1=t[2],a2=t[3],card=mix(bg,"#000000",.28);
+  if(cr(a1,bg)<1.6)a1=cr(a2,bg)>=1.6?a2:"#ffffff";if(cr(a2,card)<3)a2=cr(a1,card)>=3?a1:"#ffffff";
+  var acc=[a1,a2,"#ffffff"].filter(function(c){return cr(c,card)>=3})[0];
+  var v={"--bg":bg,"--card":card,"--muted":mix("#ffffff",bg,.32),"--line":mix(bg,"#ffffff",.22),"--fair":mix(bg,"#ffffff",.1),"--green":a1,"--green-ink":lum(a1)>.4?"#111111":"#ffffff",
+   "--pin":a2,"--red":acc,"--shadow":mix(bg,"#000000",.6),"--a1":a1,"--a2":a2,"--hero":mix(bg,"#ffffff",.14),"--hero-end":mix(bg,"#000000",.2),"--cb-band":lum(t[2])<.5?t[2]:bg,"--cb-edge":mix(bg,"#000000",.4),"--cb-ink":mix(bg,"#000000",.4)};
+  for(var n in v)st.setProperty(n,v[n])};
+ var pick=null;try{pick=localStorage.getItem("sg-team")}catch(e){}
+ if(pick&&TEAMS[pick])window.SG_APPLY_TEAM(pick)})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -421,16 +436,16 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
 :root[data-season="pennant"][data-theme="dark"]{--bg:#18181a;--card:#232326;--ink:#ecebe7;--muted:#a5a29b;--line:#3a3a3e;--green:#ecebe7;--green-ink:#18181a;--fair:#2c2c30;--pin:#e3ad48;--pin-soft:#3b3120;--bad:#e0707f;--red:#e0707f;--shadow:#000000;--wood:#c48a52;color-scheme:dark}
 @media (prefers-color-scheme:dark){:root[data-season="hotstove"]:not([data-theme="light"]){--bg:#1c140d;--card:#2a1e14;--ink:#f2e4cc;--muted:#b49d80;--line:#4a3725;--green:#f2e4cc;--green-ink:#1c140d;--fair:#352619;--pin:#e89a4a;--pin-soft:#3d2a16;--bad:#f07a5f;--red:#f07a5f;--shadow:#0a0603;--wood:#c98a4e;color-scheme:dark}}
 :root[data-season="hotstove"][data-theme="dark"]{--bg:#1c140d;--card:#2a1e14;--ink:#f2e4cc;--muted:#b49d80;--line:#4a3725;--green:#f2e4cc;--green-ink:#1c140d;--fair:#352619;--pin:#e89a4a;--pin-soft:#3d2a16;--bad:#f07a5f;--red:#f07a5f;--shadow:#0a0603;--wood:#c98a4e;color-scheme:dark}
-:root[data-season="october"],:root[data-season="october"]:not([data-theme="light"]){--bg:#16328a;--card:#0f2466;--ink:#ffffff;--muted:#b4c3e8;--line:#3a56a8;--green:#e21f36;--green-ink:#ffffff;--fair:#1d3d99;--pin:#f6c425;--pin-soft:#3f3714;--bad:#ff6b7d;--red:#ff5468;--shadow:#06103a;--wood:#ffffff;--scrim:rgba(3,10,40,.7);color-scheme:dark;
+:root[data-season="october"],:root[data-season="october"]:not([data-theme="light"]){--bg:#16328a;--card:#0f2466;--ink:#ffffff;--muted:#b4c3e8;--line:#3a56a8;--green:#e21f36;--green-ink:#ffffff;--fair:#1d3d99;--pin:#f6c425;--pin-soft:#3f3714;--bad:#ff6b7d;--red:#ff5468;--shadow:#06103a;--wood:#ffffff;--scrim:rgba(3,10,40,.7);color-scheme:dark;--a1:#e21f36;--a2:#f6c425;--hero:#2448a8;--hero-end:#0e2370;
   --cb:#f3f5fa;--cb-row:#e2e7f2;--cb-edge:#0b1a52;--cb-ink:#0b1a52;--cb-band:#e21f36;--cb-on-band:#ffffff;--cb-gold:#f6c425}
-:root[data-season="october"] body{background:radial-gradient(120% 60% at 50% 0%,#2448a8 0%,#16328a 45%,#0e2370 100%) fixed}
-:root[data-season="october"] .mark small{color:#f6c425}
+:root[data-season="october"] body{background:radial-gradient(120% 60% at 50% 0%,var(--hero) 0%,var(--bg) 45%,var(--hero-end) 100%) fixed}
+:root[data-season="october"] .mark small{color:var(--a2)}
 :root[data-season="october"] .mark .home{color:#fff;padding-right:6px;
-  text-shadow:2px 2px 0 #e21f36}
+  text-shadow:2px 2px 0 var(--a1)}
 :root[data-season="october"] .bat{margin-top:4px}
-:root[data-season="october"] .bat path:first-of-type,:root[data-season="october"] .bat circle{fill:#fff;stroke:#e21f36;stroke-width:2.4}
-:root[data-season="october"] .card{border-color:#fff;box-shadow:4px 4px 0 #e21f36}
-:root[data-season="october"] .face img{background:#1d3d99}
+:root[data-season="october"] .bat path:first-of-type,:root[data-season="october"] .bat circle{fill:#fff;stroke:var(--a1);stroke-width:2.4}
+:root[data-season="october"] .card{border-color:#fff;box-shadow:4px 4px 0 var(--a1)}
+:root[data-season="october"] .face img{background:var(--fair)}
 /* Script descenders (g, y, f) need room so they never touch the line below. */
 .result .term,.tutor .term,.rdone,.mtitle,.hallhead h2,.theme{padding-bottom:.2em}
 .result .term{margin-bottom:2px}
@@ -465,7 +480,7 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
     </div>
   </header>
   <main id="main"><div class="card loading">Loading every big-league roster, 1871–2026…</div></main>
-  <footer>Fan-made, not affiliated with Major League Baseball. Rosters from the Lahman Baseball Database (1871–2025) and MLB (2026). WAR from Baseball-Reference.<div class="seasonpick"><label for="seasonsel">Look </label><select id="seasonsel"></select></div></footer>
+  <footer>Fan-made, not affiliated with Major League Baseball. Rosters from the Lahman Baseball Database (1871–2025) and MLB (2026). WAR from Baseball-Reference.<div class="seasonpick"><label for="seasonsel">Colors </label><select id="seasonsel"></select></div></footer>
 </div>
 <div class="modal" id="modal" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="mtitle"><button class="x" id="mclose" aria-label="Close">×</button><div class="stack" id="mbody"></div></div></div>
 <div class="modal" id="cardov" hidden><div class="bbcard" role="dialog" aria-modal="true" aria-label="Baseball card"><button class="x" id="cardclose" aria-label="Close card">×</button><div id="cardbody"></div></div></div>
@@ -1223,14 +1238,13 @@ fetch("data.json").then(r=>r.json()).then(d=>{
   if(!store.get("hideWelcome")&&!fromHome)openModal(welcomeHTML());
 }).catch(e=>{console.error(e);$("#main").innerHTML='<div class="card loading">The roster data did not load. Reload the page to try again.</div>'});
 
-/* Footer look picker: Auto follows the calendar; a pick sticks on this device. */
-(function(){const sel=document.getElementById("seasonsel");if(!sel)return;
- const NAMES={opening:"Opening Day",scorecard:"Scorecard",midsummer:"Midsummer",pennant:"Pennant Race",october:"October",hotstove:"Hot Stove"};
- let pick="";try{pick=localStorage.getItem("sg-season")||""}catch(e){}
- sel.innerHTML=`<option value="">Auto (${NAMES[window.SG_SEASON_AUTO]})</option>`+Object.entries(NAMES).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
- sel.value=NAMES[pick]?pick:"";
+/* Footer colors picker: Default keeps the site look; a team repaints it in that club's colors on this device. */
+(function(){const sel=document.getElementById("seasonsel");if(!sel)return;const T=window.SG_TEAMS;
+ let pick="";try{pick=localStorage.getItem("sg-team")||""}catch(e){}
+ sel.innerHTML=`<option value="">Default</option>`+Object.entries(T).sort((x,y)=>x[1][0].localeCompare(y[1][0])).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join("");
+ sel.value=T[pick]?pick:"";
  const tc=()=>{const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()||"#1d2a44"};
  tc();
- sel.addEventListener("change",()=>{const v=sel.value;try{v?localStorage.setItem("sg-season",v):localStorage.removeItem("sg-season")}catch(e){}
-  document.documentElement.setAttribute("data-season",v||window.SG_SEASON_AUTO);tc()})})();
+ sel.addEventListener("change",()=>{const v=sel.value;try{v?localStorage.setItem("sg-team",v):localStorage.removeItem("sg-team")}catch(e){}
+  document.documentElement.setAttribute("data-season",window.SG_SEASON_AUTO);window.SG_APPLY_TEAM(v);tc()})})();
 </script>
