@@ -771,7 +771,7 @@ function rosterHTML(ti,u,seen){
   if(f)ps=ps.filter(p=>norm(P[p][0]).includes(f));
   ps.sort((x,y)=>P[x][6].localeCompare(P[y][6]));
   return `<div class="roster"><div class="row"><b class="small">${esc(tname(ti))}</b><span class="small muted">${T[ti][2].length} players</span></div>
-    <input id="rfilter" type="search" placeholder="Filter this roster" value="${esc(S.filter)}" autocomplete="off">
+    <input id="rfilter" type="search" placeholder="Search this roster" value="${esc(S.filter)}" autocomplete="off">
     <div class="plist">${ps.map(p=>pbtn(p,ti,seen,(ageIn(p,ti)?"Age "+ageIn(p,ti)+" · ":"")+yrs(p))).join("")||'<span class="small muted">No one matches.</span>'}</div></div>`;
 }
 function resultHTML(){
@@ -939,7 +939,7 @@ function runHTML(){const h=S.hole,i=runAt(h),n=h.years.length,first=h.years[0],l
       <div class="actions"><button class="btn primary" id="share">Copy result</button><button class="btn" id="runagain">Another team</button></div></div></section>`;return s}
   const q=norm(S.filter.trim()),ps=[...h.rost[i]].filter(p=>!q||norm(P[p][0]).includes(q)).sort((x,y)=>P[x][6].localeCompare(P[y][6]));
   s+=`<div class="small">Pick a player from the <b>${h.years[i]} ${esc(h.names[i])}</b> who was back in ${h.years[i]+1}. You ride him through his run with the team, then pick again. Reach ${last} in as few picks as you can.</div>
-    <input id="rfilter" type="search" placeholder="Filter the ${h.years[i]} roster" value="${esc(S.filter)}" autocomplete="off">
+    <input id="rfilter" type="search" placeholder="Search the ${h.years[i]} roster" value="${esc(S.filter)}" autocomplete="off">
     <div class="plist">${ps.map(p=>`<div class="pwrap"><button class="pbtn${p===h.hintP?" hinted":""}" data-runp="${p}"><span class="pn">${esc(P[p][0])}</span><span class="py">${yrs(p)}</span></button><button class="cardbtn" data-card="${p}" aria-label="${esc(P[p][0])} baseball card">Card</button></div>`).join("")||'<span class="small muted">No one matches.</span>'}</div>
     <div class="actions"><button class="btn" id="runhint">Hint +1</button><button class="btn" id="runback"${h.trail.length<2?" disabled":""}>Back +1</button><button class="btn" id="runquit">New run</button></div></section>`;
   return s}
