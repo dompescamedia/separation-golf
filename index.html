@@ -36,7 +36,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Graduate&family=Bitter:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Kaushan+Script&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Graduate&family=Bitter:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
 <style>
 /* Layout: a 1950s ballpark scorecard. One narrow column of printed cards with offset ink shadows: hole card, your route, then the current player's team-seasons as year chips that open rosters inline. */
 :root{
@@ -422,15 +422,13 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
 @media (prefers-color-scheme:dark){:root[data-season="hotstove"]:not([data-theme="light"]){--bg:#1c140d;--card:#2a1e14;--ink:#f2e4cc;--muted:#b49d80;--line:#4a3725;--green:#f2e4cc;--green-ink:#1c140d;--fair:#352619;--pin:#e89a4a;--pin-soft:#3d2a16;--bad:#f07a5f;--red:#f07a5f;--shadow:#0a0603;--wood:#c98a4e;color-scheme:dark}}
 :root[data-season="hotstove"][data-theme="dark"]{--bg:#1c140d;--card:#2a1e14;--ink:#f2e4cc;--muted:#b49d80;--line:#4a3725;--green:#f2e4cc;--green-ink:#1c140d;--fair:#352619;--pin:#e89a4a;--pin-soft:#3d2a16;--bad:#f07a5f;--red:#f07a5f;--shadow:#0a0603;--wood:#c98a4e;color-scheme:dark}
 :root[data-season="october"],:root[data-season="october"]:not([data-theme="light"]){--bg:#16328a;--card:#0f2466;--ink:#ffffff;--muted:#b4c3e8;--line:#3a56a8;--green:#e21f36;--green-ink:#ffffff;--fair:#1d3d99;--pin:#f6c425;--pin-soft:#3f3714;--bad:#ff6b7d;--red:#ff5468;--shadow:#06103a;--wood:#ffffff;--scrim:rgba(3,10,40,.7);color-scheme:dark;
-  --cb:#f3f5fa;--cb-row:#e2e7f2;--cb-edge:#0b1a52;--cb-ink:#0b1a52;--cb-band:#e21f36;--cb-on-band:#ffffff;--cb-gold:#f6c425;--script:"Kaushan Script","Brush Script MT",cursive}
+  --cb:#f3f5fa;--cb-row:#e2e7f2;--cb-edge:#0b1a52;--cb-ink:#0b1a52;--cb-band:#e21f36;--cb-on-band:#ffffff;--cb-gold:#f6c425}
 :root[data-season="october"] body{background:radial-gradient(120% 60% at 50% 0%,#2448a8 0%,#16328a 45%,#0e2370 100%) fixed}
-:root[data-season="october"] .mark{transform:none}
 :root[data-season="october"] .mark small{color:#f6c425}
-:root[data-season="october"] .mark .home{font-family:"Kaushan Script","Brush Script MT",cursive;font-size:clamp(34px,10vw,44px);line-height:1.15;color:#fff;transform:rotate(-4deg);transform-origin:left bottom;padding:0 8px 0 0;
-  text-shadow:2px 2px 0 #0b1a52,3px 3px 0 #e21f36,5px 5px 0 #e21f36,6px 6px 0 #f6c425,8px 8px 0 #f6c425}
-:root[data-season="october"] .bat{margin-top:6px;margin-left:-4px}
+:root[data-season="october"] .mark .home{color:#fff;padding-right:6px;
+  text-shadow:2px 2px 0 #e21f36}
+:root[data-season="october"] .bat{margin-top:4px}
 :root[data-season="october"] .bat path:first-of-type,:root[data-season="october"] .bat circle{fill:#fff;stroke:#e21f36;stroke-width:2.4}
-:root[data-season="october"] .bat{filter:drop-shadow(3px 3px 0 #f6c425)}
 :root[data-season="october"] .card{border-color:#fff;box-shadow:4px 4px 0 #e21f36}
 :root[data-season="october"] .face img{background:#1d3d99}
 .seasonpick{margin-top:8px}
