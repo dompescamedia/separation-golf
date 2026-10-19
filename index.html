@@ -222,7 +222,12 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .bar{height:12px;background:var(--ink);border-radius:2px;min-width:3px}
 .bar.me{background:var(--red)}
 .rrank{display:flex;flex-direction:column;gap:2px;margin-top:8px}.rrank>div:first-child{display:flex;align-items:baseline;gap:8px}.rrank b{font-size:22px}
-.streak{margin-top:6px}.crowd{margin-top:10px;display:grid;gap:6px}
+.streak{margin-top:6px}
+.runbar{height:12px;border:2px solid var(--ink);border-radius:6px;overflow:hidden;background:var(--card)}.runbar>div{height:100%;background:var(--red)}
+.runyrs{display:flex;justify-content:space-between;gap:8px;font-variant-numeric:lining-nums}
+.pbtn.hinted{outline:3px solid var(--pin);outline-offset:1px}
+.surprise{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.tsel{display:flex;align-items:center;gap:8px;font-weight:600}.tsel select{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px;border:2px solid var(--ink);border-radius:4px;background:var(--card);color:var(--ink)}.crowd{margin-top:10px;display:grid;gap:6px}
 .toast{position:fixed;z-index:30;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:13px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
 /* Baseball card */
 .cardlink{border:0;background:none;padding:0;margin:0;font:inherit;color:inherit;text-align:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
@@ -565,7 +570,7 @@ function roundPlan(d,i){const k=d+":"+i;if(PLAN[k])return PLAN[k];
 const DIFFS={easy:{label:"Easy",lo:2,hi:2},medium:{label:"Medium",lo:3,hi:3},hard:{label:"Hard",lo:4,hi:5},legend:{label:"Legend",lo:6,hi:12}};
 const PRESETS=[["All time",MINY,MAXY],["Since 2000",2000,MAXY],["1980–2026",1980,MAXY],["1950–1999",1950,1999],["Before 1950",MINY,1949]];
 const S={hallOpen:new Set(),hallQ:{},hallT:{},clockOn:!!store.get("clock"),dir:store.get("dir")==="young"?"young":"old",mode:"daily",hole:null,open:-1,filter:"",tq:"",peek:{},diff:"medium",tally:{holes:0,over:0},rd:null,
-  custom:{a:null,b:null,teamOn:false,fr:[],showOld:false},range:Object.assign({from:MINY,to:MAXY,strict:true},store.get("range")||{})};
+  custom:{a:null,b:null,tmode:"any",fr:[],showOld:false,kind:"pair",run:{fr:null,from:0}},range:Object.assign({from:MINY,to:MAXY,strict:true},store.get("range")||{})};
 
 // dir: "old" = older player tees off (default), "young" = younger player tees off, "keep" = order as given
 function newHole(a,b,kind,meta,C,saveKey,dir){
@@ -631,7 +636,9 @@ function tutorHTML(){const h=S.hole,u=cur(),R=ID2.get("ruthba01"),G=ID2.get("geh
   return`<section class="card tutor" aria-live="polite"><div class="eyebrow">Tutorial · step ${Math.min(h.trail.length*2-(S.open===chip?0:1),4)} of 4</div><p>${msg}</p>${h.trail.length===1&&S.open!==chip?`<p class="small muted">Tip: tap a big name, like the tee or pin, for his baseball card.</p>`:""}</section>`}
 function startRange(){const [a,b]=pickPair(Math.random,{lo:1,hi:2,minFame:15});newHole(a,b,"range",{},null,null,S.dir)}
 function startEndless(){const [a,b]=pickPair(Math.random,{lo:DIFFS[S.diff].lo,hi:DIFFS[S.diff].hi,C:S.range});newHole(a,b,"endless",{diff:S.diff},{...S.range},null,S.dir)}
-const customC=()=>({...S.range,fr:S.custom.teamOn&&S.custom.fr.length?[...S.custom.fr]:null});
+// Custom limits. tmode: "any" | "one" (one franchise) | "multi" (any of the picked teams).
+const customC=()=>{const c=S.custom,fr=c.tmode==="one"&&c.fr.length?[c.fr[0]]:c.tmode==="multi"&&c.fr.length?[...c.fr]:null;
+  return{...S.range,fr}};
 
 // Stroke limit: the score stops at MAXS, but you can keep playing to finish.
 const MAXS=10;
@@ -642,7 +649,7 @@ function jump(p,t){const h=S.hole;if(h.done)return;
   if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"})}
 function back(){const h=S.hole;if(h.done||h.trail.length<2)return;const prev=h.trail[h.trail.length-2];
   h.trail.push({p:prev.p,t:-2});bump(h,1);S.open=-1;h.hintTeam=-1;save();render()}
-function hint(){const h=S.hole;if(h.done)return;const u=cur(),du=h.distT[u];
+function hint(){const h=S.hole;if(h.done)return;const u=cur();const du=h.distT[u];
   for(const ti of teamsOf(u))for(const v of T[ti][2])if(h.distT[v]===du-1){h.hintTeam=ti;h.hints++;bump(h,1);S.open=ti;save();render();return}}
 // Mulligan: take back the last move for free. One per hole, or one for the whole Daily 9.
 const roundMull=d=>store.get("mull:"+d);
@@ -700,7 +707,8 @@ function render(){
   if(S.mode==="hall"){$("#main").innerHTML=hallHTML();bindHall();return}
   if(S.mode==="round")html+=roundCardHTML();
   if(S.mode==="endless")html+=`<div class="card row"><div class="diff" role="group" aria-label="Difficulty">${Object.entries(DIFFS).map(([k,v])=>`<button data-diff="${k}" aria-pressed="${S.diff===k}">${v.label}</button>`).join("")}</div><div class="small muted">${S.tally.holes?`Round: ${S.tally.holes} hole${S.tally.holes>1?"s":""}, ${relTxt(S.tally.over)}`:"Round not started"}</div></div>`+rangeHTML();
-  if(S.mode==="custom")html+=rangeHTML()+teamsHTML()+customHTML();
+  if(S.mode==="custom"){const k=S.custom.kind;html+=`<div class="card row slim"><div class="diff" role="group" aria-label="Custom game"><button data-ckind="pair" aria-pressed="${k!=="run"}">Player to player</button><button data-ckind="run" aria-pressed="${k==="run"}">Team history run</button></div></div>`+surpriseHTML();
+    if(k==="run"){html+=S.hole&&S.hole.kind==="run"?runHTML():runSetupHTML()}else html+=rangeHTML()+teamsHTML()+customHTML()}
   if(S.mode==="tutor"&&S.hole&&S.hole.kind==="tutor")html+=tutorHTML()+holeHTML();
   if(S.mode==="range")html+=`<div class="card"><div class="eyebrow">Practice range</div><div class="small">Short holes, one or two jumps, with well-known players. Nothing is scored and hints are free.</div></div>`;
   if(S.mode==="daily"&&S.hole&&S.hole.kind==="daily")html+=`<div class="card row slim"><div class="dleft"><div class="small"><b>Daily #${S.hole.meta.n}</b> · ${fmtDate(S.hole.meta.date)}${S.hole.meta.late?" · from the archive":""}</div><div class="hardrow"><label class="hardsw${S.hole.hard?" on":""}${hardLocked(S.hole)?" locked":""}"><input type="checkbox" role="switch" id="hardtog" ${S.hole.hard?"checked":""}><span class="trk"><span class="knb"></span></span><span class="hl">Hard mode</span></label><button class="qbtn" id="hardhelp" aria-label="What is Hard mode?">?</button></div></div>${SHOW_ARCHIVE?'<button class="btn" id="archive">Archive</button>':""}</div>`;
@@ -864,13 +872,86 @@ function rangeHTML(){const r=S.range,opts=sel=>{let o="";for(let y=MAXY;y>=MINY;
     <div class="diff" role="group" aria-label="Year presets">${PRESETS.map(([l,a,b])=>`<button data-preset="${a}-${b}" aria-pressed="${r.from===a&&r.to===b}">${l}</button>`).join("")}</div>
     <div class="yrs"><label>From <select id="rfrom">${opts(r.from)}</select></label><label>to <select id="rto">${opts(r.to)}</select></label></div>
     <label class="small chk"><input type="checkbox" id="rstrict" ${r.strict?"checked":""}> Route can only use rosters from these years</label></section>`}
-function teamsHTML(){const c=S.custom;
-  let s=`<section class="card stack"><label class="chk"><input type="checkbox" id="teamon" ${c.teamOn?"checked":""}> <b>Stay within certain teams</b></label>`;
-  if(c.teamOn){const list=FR.map((f,i)=>i).filter(i=>c.showOld||FR[i][1]||c.fr.includes(i));
+function teamsHTML(){const c=S.custom,m=c.tmode||"any";
+  let s=`<section class="card stack"><div class="eyebrow">Teams</div>
+    <div class="diff" role="group" aria-label="Teams">${[["any","Any team"],["one","One team"],["multi","A few teams"]].map(([k,l])=>`<button data-tmode="${k}" aria-pressed="${m===k}">${l}</button>`).join("")}</div>`;
+  if(m==="one"){const cur=c.fr[0],by=(x,y)=>FR[x][0].localeCompare(FR[y][0]),all=FR.map((f,i)=>i);
+    const opt=i=>`<option value="${i}"${i===cur?" selected":""}>${esc(FR[i][0])}${FR[i][1]?"":` (${FR[i][2]===FR[i][3]?FR[i][2]:FR[i][2]+"–"+FR[i][3]})`}</option>`;
+    s+=`<label class="tsel">Team <select id="oneteam"><option value="">Pick a team</option>${all.filter(i=>FR[i][1]).sort(by).map(opt).join("")}<optgroup label="Old & Negro Leagues teams">${all.filter(i=>!FR[i][1]).sort(by).map(opt).join("")}</optgroup></select></label>
+    <div class="small muted">Every jump uses this team's rosters, even if a player spent most of his career somewhere else.</div>`}
+  if(m==="multi"){const list=FR.map((f,i)=>i).filter(i=>c.showOld||FR[i][1]||c.fr.includes(i));
     s+=`<div class="small muted">Every jump has to use a roster from a team you pick. Pick one or more.</div>
     <div class="tchips">${list.map(i=>`<button class="tchip" data-fr="${i}" aria-pressed="${c.fr.includes(i)}">${esc(FR[i][0])}${FR[i][1]?"":` <span class="muted">(${FR[i][2]===FR[i][3]?FR[i][2]:FR[i][2]+"–"+FR[i][3]})</span>`}</button>`).join("")}</div>
     <div class="actions"><button class="btn" id="frold">${c.showOld?"Hide":"Show"} old & Negro Leagues teams</button>${c.fr.length?`<button class="btn" id="frclear">Clear teams</button>`:""}</div>`}
   return s+`</section>`}
+// Surprise me: random years, team and players for people who want an idea.
+function surpriseHTML(){return`<section class="card surprise"><div><div class="eyebrow">Need an idea?</div><div class="small muted">Random years, team and players, then you tee off.</div></div><button class="btn primary" id="surprise"><span aria-hidden="true">🎲</span> Surprise me</button></section>`}
+function surprise(){const r=Math.random,ri=n=>Math.floor(r()*n),cur=FR.map((f,i)=>i).filter(i=>FR[i][1]&&runYears(i).length>=20);
+  if(S.custom.kind==="run"){const f=cur[ri(cur.length)],ys=runYears(f),starts=[ys[0],...[1950,1970,1990,2000].filter(y=>y>ys[0])];
+    S.custom.run={fr:f,from:starts[ri(starts.length)]};startRun();render();toast(`Surprise: ${FR[f][0]}, ${S.hole.years[0]} to ${S.hole.years[S.hole.years.length-1]}`);scrollHole();return}
+  for(let k=0;k<8;k++){const roll=r();let tmode="any",fr=[],from,to;
+    if(roll<.6){tmode="one";const f=cur[ri(cur.length)];fr=[f];const lo=Math.max(FR[f][2],1901),len=15+ri(21);from=lo+ri(Math.max(1,MAXY-lo-len+1));to=Math.min(MAXY,from+len)}
+    else{const len=10+ri(21);from=1901+ri(MAXY-1901-len+1);to=from+len}
+    Object.assign(S.custom,{tmode,fr,a:null,b:null});S.range={from,to,strict:true};store.set("range",S.range);
+    const C=customC();if(poolFor(C).length<12)continue;
+    const pr=pickPair(r,{lo:3,hi:6,strictOnly:true,C,minFame:6});if(!pr)continue;
+    newHole(pr[0],pr[1],"custom",{},C,null,S.dir);if(!S.hole.C)continue;
+    render();toast("Surprise: "+limitsLabel(S.hole.C));scrollHole();return}
+  render();toast("Nothing fit that time. Tap Surprise me again")}
+const scrollHole=()=>{const hc=document.querySelector(".hole");hc&&hc.scrollIntoView({behavior:"smooth",block:"start"})};
+
+// Team history run (Dom, 2026-10-19): start on a franchise's first roster and relay through every season to its last.
+// Each stroke picks a player from the season you're on who was back the next season; you ride him to the end of his unbroken run with the team.
+const RUNY={};
+function runYears(f){if(RUNY[f])return RUNY[f];const m=new Map();for(let ti=0;ti<NT;ti++)if(T[ti][3]===f){const y=T[ti][0];if(!m.has(y))m.set(y,new Set());for(const p of T[ti][2])m.get(y).add(p)}
+  const ys=[...m.keys()].sort((x,y)=>x-y);ys.rost=ys.map(y=>m.get(y));return RUNY[f]=ys}
+// Index of the last season in p's unbroken run starting at season i (i itself if he wasn't back next season).
+function runEnd(h,i,p){let j=i;while(j+1<h.rost.length&&h.rost[j+1].has(p))j++;return j}
+function runDist(h){const n=h.rost.length,d=new Int16Array(n).fill(-1);d[n-1]=0;
+  for(let i=n-2;i>=0;i--){let m=-1;for(const p of h.rost[i]){const j=runEnd(h,i,p);if(j>i&&d[j]>=0&&(m<0||d[j]+1<m))m=d[j]+1}d[i]=m}return d}
+function startRun(){const c=S.custom.run,ys=runYears(c.fr);let k=Math.max(0,ys.findIndex(y=>y>=c.from));if(k<0)k=0;
+  const years=ys.slice(k),rost=ys.rost.slice(k),h={kind:"run",fr:c.fr,years,rost,trail:[{i:0,p:-1}],strokes:0,hints:0,done:false,gaveUp:false,meta:{},hintP:-1};
+  h.d=runDist(h);if(h.d[0]<0){let i=0;while(h.d[i]<0)i++;h.years=years.slice(i);h.rost=rost.slice(i);h.d=runDist(h)}
+  h.best=h.d[0];h.par=h.best+2;S.hole=h;S.filter=""}
+const runAt=h=>h.trail[h.trail.length-1].i;
+function runPick(p){const h=S.hole;if(h.done)return;const i=runAt(h),j=runEnd(h,i,p);
+  if(j===i){toast(`${P[p][0]} wasn't on the ${h.years[i]+1} roster. Pick someone who came back.`);return}
+  h.trail.push({i:j,p});h.strokes++;h.hintP=-1;S.filter="";if(j===h.rost.length-1){h.done=true}render();window.scrollTo({top:0,behavior:"smooth"})}
+function runBack(){const h=S.hole;if(h.done||h.trail.length<2)return;h.trail.pop();h.strokes++;h.hintP=-1;render()}
+function runHint(){const h=S.hole;if(h.done)return;const i=runAt(h),want=h.d[i]-1;let best=-1,bw=-1e9;
+  for(const p of h.rost[i]){const j=runEnd(h,i,p);if(j>i&&h.d[j]===want&&(P[p][10]||0)>bw){bw=P[p][10]||0;best=p}}
+  if(best>=0){h.hintP=best;h.hints++;h.strokes++;render();const b=document.querySelector(".pbtn.hinted");b&&b.scrollIntoView({block:"center",behavior:"smooth"})}}
+// A fewest-picks relay, used on the result screen.
+function runBest(h){const out=[];let i=0;while(i<h.rost.length-1){let best=-1,bj=i,bw=-1e9;for(const p of h.rost[i]){const j=runEnd(h,i,p);if(j>i&&h.d[j]===h.d[i]-1&&(P[p][10]||0)>bw){bw=P[p][10]||0;best=p;bj=j}}if(best<0)break;out.push({p:best,from:i,i:bj});i=bj}return out}
+function runHTML(){const h=S.hole,i=runAt(h),n=h.years.length,first=h.years[0],last=h.years[n-1],rel=h.strokes-h.par,team=esc(FR[h.fr][0]);
+  const pct=Math.round(i/(n-1)*100);
+  const legs=h.trail.slice(1).map((e,k)=>{const from=h.trail[k].i;return`<li><button class="cardlink" data-card="${e.p}">${esc(P[e.p][0])}</button> <span class="muted small">· ${h.years[from]}–${h.years[e.i]}</span></li>`}).join("");
+  let s=`<section class="card hole run"><div class="row"><div class="eyebrow">Team history run · ${team}</div></div>
+    <div class="runbar" role="progressbar" aria-valuemin="${first}" aria-valuemax="${last}" aria-valuenow="${h.years[i]}"><div style="width:${pct}%"></div></div>
+    <div class="runyrs small"><span>${first}</span><b>${h.done?"Made it to "+last:"Now in "+h.years[i]}</b><span>${last}</span></div>
+    <div class="score" id="scorebox"><div><b>${h.par}</b><span>Par</span></div><div><b>${h.strokes}</b><span>Strokes</span></div><div class="rel"><b class="${rel>0?"over":rel<0?"under":""}">${h.strokes===0?"–":relTxt(rel)}</b><span>To par</span></div></div>`;
+  if(legs)s+=`<div><div class="eyebrow">Your relay</div><ol class="small">${legs}</ol></div>`;
+  if(h.done){const best=runBest(h);
+    s+=`<div class="result"><div class="eyebrow">Made it</div><div class="term ${rel>0?"over":""}">${esc(term(rel,h.strokes))}</div>
+      <div class="small muted">${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}${h.hints?`, ${h.hints} hint${h.hints>1?"s":""}`:""}. Fewest possible: ${h.best}.</div>
+      <div class="eyebrow" style="margin-top:10px">One of the fewest-pick relays</div><ol class="small">${best.map(e=>`<li><button class="cardlink" data-card="${e.p}">${esc(P[e.p][0])}</button> <span class="muted">· ${h.years[e.from]}–${h.years[e.i]}</span></li>`).join("")}</ol>
+      <div class="sharebox" id="sharebox">${esc(runShare())}</div>
+      <div class="actions"><button class="btn primary" id="share">Copy result</button><button class="btn" id="runagain">Another team</button></div></div></section>`;return s}
+  const q=norm(S.filter.trim()),ps=[...h.rost[i]].filter(p=>!q||norm(P[p][0]).includes(q)).sort((x,y)=>P[x][6].localeCompare(P[y][6]));
+  s+=`<div class="small">Pick a player from the <b>${h.years[i]} ${team}</b> who was back in ${h.years[i]+1}. You ride him through his run with the team, then pick again. Reach ${last} in as few picks as you can.</div>
+    <input id="rfilter" type="search" placeholder="Filter the ${h.years[i]} roster" value="${esc(S.filter)}" autocomplete="off">
+    <div class="plist">${ps.map(p=>`<button class="pbtn${p===h.hintP?" hinted":""}" data-runp="${p}"><span class="pn">${esc(P[p][0])}</span><span class="py">${yrs(p)}</span></button>`).join("")||'<span class="small muted">No one matches.</span>'}</div>
+    <div class="actions"><button class="btn" id="runhint">Hint +1</button><button class="btn" id="runback"${h.trail.length<2?" disabled":""}>Back +1</button><button class="btn" id="runquit">New run</button></div></section>`;
+  return s}
+function runShare(){const h=S.hole,rel=h.strokes-h.par;
+  return[`⛳ Separation Golf · Team history run`,`${FR[h.fr][0]} ${h.years[0]} → ${h.years[h.years.length-1]}`,`Par ${h.par} · ${h.strokes} strokes · ${term(rel,h.strokes)}`,BASE_URL].join("\n")}
+function runSetupHTML(){const c=S.custom.run,by=(x,y)=>FR[x][0].localeCompare(FR[y][0]),list=FR.map((f,i)=>i).filter(i=>FR[i][1]).sort(by);
+  const ys=c.fr!=null?runYears(c.fr):null;
+  return`<section class="card stack"><div class="eyebrow">Team history run</div>
+    <div class="small muted">Start on a team's first roster and relay player to player through every season to today. Each pick has to be a player who was back the next year, and you ride him through his whole run with the team.</div>
+    <label class="tsel">Team <select id="runteam"><option value="">Pick a team</option>${list.map(i=>`<option value="${i}"${i===c.fr?" selected":""}>${esc(FR[i][0])}</option>`).join("")}</select></label>
+    ${ys?`<div class="eyebrow">Start in</div><div class="diff" role="group" aria-label="Start year">${[["Whole history",ys[0]],...[1950,1970,1990,2000].filter(y=>y>ys[0]).map(y=>["Since "+y,y])].map(([l,y])=>`<button data-runfrom="${y}" aria-pressed="${(c.from||ys[0])===y}">${l}</button>`).join("")}</div>`:""}
+    <div class="actions"><button class="btn primary" id="runplay">Start the run</button></div></section>`}
 function customHTML(){const c=S.custom;
   return `<section class="card stack"><div class="eyebrow">Players (optional)</div>
     <div class="search"><input id="ca" type="search" placeholder="Any player, or leave blank" value="${c.a!=null?esc(P[c.a][0]):""}" autocomplete="off"><div class="sugg" id="sa" hidden></div></div>
@@ -985,7 +1066,7 @@ function welcomeHTML(){return`<h2 class="mtitle wt" id="mtitle">Welcome to Separ
   <p class="small"><b>Deep Cut rank</b> on the Daily: strokes first, then ties go to the route through the least career WAR. Hole it every day for a <b>streak</b>.</p>
   <ul class="small tight"><li><b>Daily</b> one hole for everyone, new at midnight ET. <b>Hard mode</b> and the <b>Archive</b> are on the Daily bar.</li>
   <li><b>Daily 9</b> nine holes, tougher as you go.</li>
-  <li><b>Endless</b> pick your next pin. <b>Custom</b> set the players, years and teams. <b>Range</b> practice, no score.</li></ul>
+  <li><b>Endless</b> pick your next pin. <b>Custom</b> set the players, years and teams, or relay through a team's whole history. <b>Range</b> practice, no score.</li></ul>
   <p class="small">Tap a name or photo for his baseball card. The <b>HOF</b> has the biggest connectors and longest careers.</p>
   <div class="actions"><button class="btn primary" id="playball">Play ball</button><button class="btn" id="tutor2">Tutorial</button></div>
   <label class="small chk"><input type="checkbox" id="nowelcome" ${store.get("hideWelcome")?"checked":""}> Don't show this when I open the game</label>`}
@@ -1036,7 +1117,7 @@ function bind(){bindCards();fillCrowd();
   const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};
   on("hint",hint);on("back",back);on("mull",mulligan);on("giveup",giveUp);
   document.querySelectorAll("[data-peek]").forEach(b=>b.onclick=()=>{S.peek[b.dataset.peek]=!S.peek[b.dataset.peek];render()});
-  on("share",()=>copy(shareText()));
+  on("share",()=>copy(S.hole.kind==="run"?runShare():shareText()));
   on("roundshare",()=>{const res=roundState(),t=roundTotals(res);copy(roundShare(res,t.st,t.par),"roundbox")});
   on("chal",()=>copy(challengeMsg()));
   on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
@@ -1049,12 +1130,20 @@ function bind(){bindCards();fillCrowd();
   document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const pk=S.hole.pick,o=pk.opts[+b.dataset.pin];newHole(pk.a,o.b,"endless",{diff:S.diff},{...S.range},null,"keep");render();window.scrollTo({top:0,behavior:"smooth"})});
   on("nexthole",()=>{startRound(S.rd.idx+1);render();window.scrollTo({top:0,behavior:"smooth"})});
   on("toscore",()=>window.scrollTo({top:0,behavior:"smooth"}));
-  on("cplay",()=>{const[a,b]=customPair();newHole(a,b,"custom",{},customC(),null,S.dir);render();const hc=document.querySelector(".hole");hc&&hc.scrollIntoView({behavior:"smooth",block:"start"})});
+  on("cplay",()=>{if(S.custom.tmode==="one"&&!S.custom.fr.length){toast("Pick a team first, or choose Any team");return}const[a,b]=customPair();newHole(a,b,"custom",{},customC(),null,S.dir);render();const hc=document.querySelector(".hole");hc&&hc.scrollIntoView({behavior:"smooth",block:"start"})});
   document.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>{S.dir=b.dataset.dir;store.set("dir",S.dir);if(S.mode==="endless")startEndless();render()});
   on("frold",()=>{S.custom.showOld=!S.custom.showOld;render()});
   on("frclear",()=>{S.custom.fr=[];render()});
   const co=$("#clockon");if(co)co.onchange=()=>{S.clockOn=co.checked;store.set("clock",S.clockOn);if(S.hole&&!S.hole.done&&(S.hole.kind==="endless"||S.hole.kind==="custom")){if(S.clockOn)S.hole.clock={t0:Date.now(),ticks:0};else delete S.hole.clock}render()};
-  const to=$("#teamon");if(to)to.onchange=()=>{S.custom.teamOn=to.checked;render()};
+  document.querySelectorAll("[data-tmode]").forEach(b=>b.onclick=()=>{const c=S.custom;c.tmode=b.dataset.tmode;if(c.tmode==="one"&&c.fr.length>1)c.fr=[c.fr[0]];render()});
+  const ot=$("#oneteam");if(ot)ot.onchange=()=>{S.custom.fr=ot.value===""?[]:[+ot.value];render()};
+  on("surprise",surprise);
+  document.querySelectorAll("[data-ckind]").forEach(b=>b.onclick=()=>{S.custom.kind=b.dataset.ckind;if(S.hole&&(S.hole.kind==="run")!==(S.custom.kind==="run"))S.hole=null;render()});
+  const rt2=$("#runteam");if(rt2)rt2.onchange=()=>{S.custom.run={fr:rt2.value===""?null:+rt2.value,from:0};render()};
+  document.querySelectorAll("[data-runfrom]").forEach(b=>b.onclick=()=>{S.custom.run.from=+b.dataset.runfrom;render()});
+  on("runplay",()=>{if(S.custom.run.fr==null){toast("Pick a team first");return}startRun();render();scrollHole()});
+  document.querySelectorAll("[data-runp]").forEach(b=>b.onclick=()=>runPick(+b.dataset.runp));
+  on("runhint",runHint);on("runback",runBack);on("runquit",()=>{S.hole=null;render()});on("runagain",()=>{S.hole=null;render();window.scrollTo({top:0})});
   const setRange=(from,to,strict)=>{if(from>to)[from,to]=[to,from];S.range={from,to,strict};store.set("range",S.range);if(S.mode==="endless")startEndless();render()};
   document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{const[a,c]=b.dataset.preset.split("-").map(Number);setRange(a,c,S.range.strict)});
   const rf2=$("#rfrom"),rt=$("#rto"),rs=$("#rstrict");
@@ -1078,7 +1167,7 @@ function fromHash(){const m=location.hash.match(/^#ch\.([a-z0-9]+)\.([a-z0-9]+)(
     if(r){let ids=r[2].split("-").map(x=>ID2.get(scr(x,-1)));if(ids.some(x=>x==null))ids=r[2].split("-").map(x=>ID2.get(x));if(ids.length&&ids.every(x=>x!=null)&&ids[ids.length-1]===b)rival={strokes:+r[1],ids}}
     if(y){C=C||{from:MINY,to:MAXY,strict:true};C.from=+y[1];C.to=+y[2]}
     if(t){C=C||{from:MINY,to:MAXY,strict:true};C.fr=t[1].split("-").map(Number).filter(n=>n<FR.length)}}
-  S.mode="custom";S.custom.a=a;S.custom.b=b;if(C&&C.fr){S.custom.teamOn=true;S.custom.fr=[...C.fr]}
+  S.mode="custom";S.custom.a=a;S.custom.b=b;if(C&&C.fr){S.custom.tmode=C.fr.length===1?"one":"multi";S.custom.fr=[...C.fr]}
   newHole(a,b,"custom",{},C,null,"keep");S.hole.rival=rival;render();return true}
 
 try{if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
