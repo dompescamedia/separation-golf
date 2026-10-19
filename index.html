@@ -926,14 +926,15 @@ function teamsHTML(){const c=S.custom,m=c.tmode||"any";
 // Surprise me: random years, team and players for people who want an idea.
 function surpriseHTML(){return`<section class="card surprise"><div><div class="eyebrow">Need an idea?</div><div class="small muted">Random years, team and players, then you tee off.</div></div><button class="btn primary" id="surprise"><span aria-hidden="true">🎲</span> Surprise me</button></section>`}
 function surprise(){const r=Math.random,ri=n=>Math.floor(r()*n),cur=FR.map((f,i)=>i).filter(i=>FR[i][1]&&runYears(i).length>=20);
-  if(S.custom.kind==="run"){const f=cur[ri(cur.length)],ys=runYears(f),starts=[ys[0],...[1950,1970,1990,2000].filter(y=>y>ys[0])];
-    S.custom.run={fr:f,from:starts[ri(starts.length)]};startRun();render();toast(`Surprise: ${FR[f][0]}, ${S.hole.years[0]} to ${S.hole.years[S.hole.years.length-1]}`);scrollHole();return}
-  for(let k=0;k<8;k++){const roll=r();let tmode="any",fr=[],from,to;
-    if(roll<.6){tmode="one";const f=cur[ri(cur.length)];fr=[f];const lo=Math.max(FR[f][2],1901),len=15+ri(21);from=lo+ri(Math.max(1,MAXY-lo-len+1));to=Math.min(MAXY,from+len)}
-    else{const len=10+ri(21);from=1901+ri(MAXY-1901-len+1);to=from+len}
+  // Skews recent and well known (Dom): most windows run up to the last few seasons, and tee/pin come from bigger names.
+  if(S.custom.kind==="run"){const f=cur[ri(cur.length)],ys=runYears(f),x=r(),want=x<.1?0:x<.2?1950:x<.4?1970:x<.7?1990:2000,from=Math.max(ys[0],want);
+    S.custom.run={fr:f,from};startRun();render();toast(`Surprise: ${FR[f][0]}, ${S.hole.years[0]} to ${S.hole.years[S.hole.years.length-1]}`);scrollHole();return}
+  for(let k=0;k<10;k++){let tmode="any",fr=[],lo=1950;
+    if(r()<.6){tmode="one";const f=cur[ri(cur.length)];fr=[f];lo=Math.max(FR[f][2],1950)}
+    const len=12+ri(19);let to=r()<.75?MAXY-ri(8):lo+len+ri(Math.max(1,MAXY-lo-len+1));to=Math.min(MAXY,to);const from=Math.max(lo,to-len);
     Object.assign(S.custom,{tmode,fr,a:null,b:null});S.range={from,to,strict:true};store.set("range",S.range);
     const C=customC();if(poolFor(C).length<12)continue;
-    const pr=pickPair(r,{lo:3,hi:6,strictOnly:true,C,minFame:6});if(!pr)continue;
+    const pr=pickPair(r,{lo:3,hi:6,strictOnly:true,C,minFame:k<6?22:12});if(!pr)continue;
     newHole(pr[0],pr[1],"custom",{},C,null,S.dir);if(!S.hole.C)continue;
     render();toast("Surprise: "+limitsLabel(S.hole.C));scrollHole();return}
   render();toast("Nothing fit that time. Tap Surprise me again")}
