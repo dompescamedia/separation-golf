@@ -673,7 +673,8 @@ function tutorHTML(){const h=S.hole,u=cur(),R=ID2.get("ruthba01"),G=ID2.get("geh
     :`You're on ${nm(u)}. Tap his glowing <b>${T[chip][0]}</b> season to open that roster.`;
   else msg=pl===D?`Find ${nm(D)}. The pin always has a red flag. Tap him to hole out.`:`Tap ${nm(pl)}. Every jump is one stroke.${u===R?" Gehrig played with Ruth here and with DiMaggio later.":""}`;
   return`<section class="card tutor" aria-live="polite"><div class="eyebrow">Tutorial · step ${Math.min(h.trail.length*2-(S.open===chip?0:1),4)} of 4</div><p>${msg}</p>${h.trail.length===1&&S.open!==chip?`<p class="small muted">Tip: tap a big name, like the tee or pin, for his baseball card.</p>`:""}</section>`}
-function startRange(){const [a,b]=pickPair(Math.random,{lo:1,hi:2,minFame:15});newHole(a,b,"range",{},null,null,S.dir)}
+// Range leans recent and well known (Dom): both players mostly from 1985 on; the route itself can go anywhere.
+function startRange(){const C={from:Math.random()<.8?1985:1960,to:MAXY,strict:false,fr:[]};const [a,b]=pickPair(Math.random,{lo:1,hi:2,minFame:22,C});newHole(a,b,"range",{},null,null,S.dir)}
 function startEndless(){const [a,b]=pickPair(Math.random,{lo:DIFFS[S.diff].lo,hi:DIFFS[S.diff].hi,C:S.range});newHole(a,b,"endless",{diff:S.diff},{...S.range},null,S.dir)}
 // Custom limits. tmode: "any" | "one" (one franchise) | "multi" (any of the picked teams).
 const customC=()=>{const c=S.custom,fr=c.tmode==="one"&&c.fr.length?[c.fr[0]]:c.tmode==="multi"&&c.fr.length?[...c.fr]:null;
