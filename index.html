@@ -2,12 +2,17 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Separation Golf</title>
-<meta name="description" content="Connect any two big leaguers through their teammates. Fewest jumps wins. A new hole every day.">
-<meta property="og:title" content="Separation Golf">
-<meta property="og:description" content="Connect any two big leaguers through their teammates. Fewest jumps wins.">
+<title>Separation Golf: The Daily MLB Teammates Puzzle</title>
+<meta name="description" content="A free daily baseball puzzle. Connect two MLB players through the teammates they shared, in as few jumps as you can. Every big-league roster since 1871, with a new hole every day.">
+<link rel="canonical" href="https://separationgolf.com/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Dom Pesca">
+<meta property="og:title" content="Separation Golf: The Daily MLB Teammates Puzzle">
+<meta property="og:description" content="Connect any two big leaguers through their teammates. Fewest jumps wins. A new hole every day.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Separation Golf: The Daily MLB Teammates Puzzle">
+<meta name="twitter:description" content="Connect any two big leaguers through their teammates. Fewest jumps wins. A new hole every day.">
 <meta property="og:url" content="https://separationgolf.com/">
 <meta property="og:image" content="https://separationgolf.com/og-image.png?v=2">
 <meta property="og:image:width" content="1200">
@@ -19,6 +24,12 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png?v=2">
 <link rel="icon" type="image/png" sizes="48x48" href="icon-48.png?v=2">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png?v=2">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"WebSite","@id":"https://separationgolf.com/#site","name":"Separation Golf","url":"https://separationgolf.com/","inLanguage":"en-US"},
+ {"@type":"WebApplication","name":"Separation Golf","url":"https://separationgolf.com/","description":"A free daily baseball puzzle: connect two MLB players through the teammates they shared, in as few jumps as you can.","applicationCategory":"GameApplication","genre":["Puzzle","Baseball","Trivia"],"operatingSystem":"Any (web browser)","browserRequirements":"Requires JavaScript","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://separationgolf.com/og-image.png?v=2","author":{"@type":"Person","name":"Dom Pesca","url":"https://www.instagram.com/dompescamedia/"},"isPartOf":{"@id":"https://separationgolf.com/#site"}}
+]}
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16328a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -80,7 +91,7 @@ body{color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--pin);outline-offset:2px}
 header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 8px;flex-wrap:wrap}
-.mark{font-family:var(--script);font-weight:400;font-size:clamp(34px,10.5vw,44px);line-height:1;color:var(--red);transform:rotate(-2deg);transform-origin:left bottom}
+.mark{margin:0;font-family:var(--script);font-weight:400;font-size:clamp(34px,10.5vw,44px);line-height:1;color:var(--red);transform:rotate(-2deg);transform-origin:left bottom}
 .mark small{display:block;font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;transform:rotate(2deg);margin-bottom:2px}
 .mark .byline{color:inherit;text-decoration:none}
 .mark .home{color:inherit;text-decoration:none;display:block}
@@ -457,14 +468,14 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
 
 <div class="app">
   <header>
-    <div class="mark"><small><a class="byline" href="https://www.instagram.com/dompescamedia/" target="_blank" rel="noopener">Dom Pesca’s</a></small><a class="home" href="./" id="gohome" aria-label="Separation Golf, back to home">Separation Golf
+    <h1 class="mark"><small><a class="byline" href="https://www.instagram.com/dompescamedia/" target="_blank" rel="noopener">Dom Pesca’s</a></small><a class="home" href="./" id="gohome" aria-label="Separation Golf, back to home">Separation Golf
       <svg class="bat" viewBox="0 0 260 20" aria-hidden="true">
         <circle cx="7" cy="10" r="5.5" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.6"/>
         <path d="M11,8 L104,7.4 C150,6.6 176,2.4 206,2.2 L249,2.2 Q257,2.2 257,10 Q257,17.8 249,17.8 L206,17.8 C176,17.6 150,13.4 104,12.6 L11,12 Z" fill="var(--wood)" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round"/>
         <path d="M16,8 L16,12 M22,7.9 L22,12.1 M28,7.9 L28,12.1 M34,7.8 L34,12.2" stroke="var(--ink)" stroke-width="1.2" opacity=".55"/>
         <path d="M150,8.5 C175,6 200,5.4 245,5.6" stroke="var(--ink)" stroke-width="1" fill="none" opacity=".35"/>
       </svg></a>
-    </div>
+    </h1>
     <div class="tools">
       <button class="ibtn" id="openhelp" aria-label="How to play">?</button>
       <button class="ibtn" id="opentutor">Tutorial</button>
