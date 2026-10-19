@@ -220,6 +220,9 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .sheet ul.tight{gap:3px}
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:5px 8px;align-items:center;font-size:13px;font-variant-numeric:lining-nums}
 .bar{height:12px;background:var(--ink);border-radius:2px;min-width:3px}
+.bar.me{background:var(--red)}
+.rrank{display:flex;flex-direction:column;gap:2px;margin-top:8px}.rrank>div:first-child{display:flex;align-items:baseline;gap:8px}.rrank b{font-size:22px}
+.streak{margin-top:6px}.crowd{margin-top:10px;display:grid;gap:6px}
 .toast{position:fixed;z-index:30;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:13px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
 /* Baseball card */
 .cardlink{border:0;background:none;padding:0;margin:0;font:inherit;color:inherit;text-align:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
@@ -445,12 +448,37 @@ function bfs(src,allow){
   return {dist,parP,parT};
 }
 // Of all routes tied for shortest, the one whose players add up to the most career WAR (players[i][10], tenths). Dom, 2026-10-18.
-function warPath(a,b,allow){const db=bfs(b,allow).dist;if(db[a]<0)return null;
-  const W=p=>P[p][10]||0,memo=new Map(),nxt=new Map();
+// low=true gives the Deep Cut instead: the shortest route with the least WAR in between.
+function warPath(a,b,allow,low){const db=bfs(b,allow).dist;if(db[a]<0)return null;
+  const sg=low?-1:1,W=p=>sg*(P[p][10]||0),memo=new Map(),nxt=new Map();
   const f=v=>{if(v===b)return W(b);if(memo.has(v))return memo.get(v);let best=-Infinity,bn=null;
     for(const ti of PT[v]){if(allow&&!allow[ti])continue;for(const u of T[ti][2])if(db[u]===db[v]-1){const s=f(u);if(s>best){best=s;bn={p:u,t:ti}}}}
     const r=W(v)+best;memo.set(v,r);nxt.set(v,bn);return r};
-  const total=f(a),out=[];let v=a;while(v!==b){const n=nxt.get(v);out.push(n);v=n.p}out.war=total/10;return out}
+  const total=sg*f(a),out=[];let v=a;while(v!==b){const n=nxt.get(v);out.push(n);v=n.p}out.war=total/10;out.mid=(total-(P[a][10]||0)-(P[b][10]||0))/10;return out}
+// Daily "Deep Cut" route rank (Dom, 2026-10-19): fewer jumps first, then lowest combined career WAR of the players in between.
+// Rank = 1 + routes that beat yours; same WAR is a tie; past 500 it just says 500+.
+const RANK_CAP=500;
+function routeRank(h){const ids=h.trail.map(st=>st.p),a=h.a,b=h.b,allow=h.allow,L=ids.length-1;
+  if(L<1||ids[L]!==b||new Set(ids).size!==ids.length)return null;
+  const W=p=>P[p][10]||0,w=ids.slice(1,-1).reduce((s,p)=>s+W(p),0),db=bfs(b,allow).dist,teams=u=>allow?PT[u].filter(ti=>allow[ti]):PT[u];
+  // f[k][u]: lower bound on the WAR still to come from u with k jumps left (a walk, so it never overestimates).
+  const INF=1e9,f=[];let x=new Float64Array(NP).fill(INF);x[b]=0;
+  for(let k=1;k<L;k++){const m=new Float64Array(NT).fill(INF);
+    for(let ti=0;ti<NT;ti++){if(allow&&!allow[ti])continue;let mn=INF;for(const v of T[ti][2])if(x[v]<mn)mn=x[v];m[ti]=mn}
+    const fk=new Float64Array(NP).fill(INF);for(let u=0;u<NP;u++){let mn=INF;for(const ti of PT[u])if(m[ti]<mn&&(!allow||allow[ti]))mn=m[ti];fk[u]=mn}
+    f[k]=fk;const nx=new Float64Array(NP).fill(INF);for(let u=0;u<NP;u++)if(u!==b&&fk[u]<INF)nx[u]=W(u)+fk[u];x=nx}
+  const seen=new Uint8Array(NP),mark=new Int32Array(NP);let stamp=0,better=0,ties=0,ops=0;
+  const nbrs=u=>{const st=++stamp,out=[];mark[u]=st;for(const ti of teams(u))for(const v of T[ti][2])if(mark[v]!==st){mark[v]=st;out.push(v)}return out};
+  // Walk every route of exactly len jumps, counting the ones that beat (or tie) yours.
+  const walk=(u,k,s,len)=>{if(better>=RANK_CAP||++ops>4e6)return;
+    if(k===1){if(len<L||s<w)better++;else if(s===w)ties++;return}
+    for(const v of nbrs(u)){if(v===b||seen[v]||db[v]<0||db[v]>k-1)continue;const s2=s+W(v);
+      if(len===L&&s2+f[k-1][v]>w)continue;
+      seen[v]=1;walk(v,k-1,s2,len);seen[v]=0;if(better>=RANK_CAP)return}};
+  for(let len=h.best;len<=L&&better<RANK_CAP;len++){seen[a]=1;if(len===1){if(L>1)better++;else ties++}else walk(a,len,0,len);seen[a]=0}
+  if(ops>4e6)return null;
+  return{rank:better+1,over:better>=RANK_CAP,tied:ties>1,war:w/10}}
+const rankTxt=r=>r.over?RANK_CAP+"+":(r.tied?"Tied for #":"#")+r.rank;
 function shortestPath(a,b,allow){const r=bfs(a,allow);if(r.dist[b]<0)return null;const out=[];let v=b;
   while(v!==a){out.push({p:v,t:r.parT[v]});v=r.parP[v]}out.reverse();return out}
 
@@ -547,7 +575,7 @@ function newHole(a,b,kind,meta,C,saveKey,dir){
   S.hole={a,b,kind,meta,C,allow,distT:toT.dist,best:toT.dist[a],par:toT.dist[a]+2,trail:[{p:a,t:-1}],strokes:0,hints:0,hintTeam:-1,done:false,gaveUp:false,saveKey};
   // Hard mode (Daily only): only the tee and pin cards open. Last choice is the default for a new day; locked once the first move is made.
   S.hole.hard=kind==="daily"&&!!store.get("hardPref");
-  if(saveKey){const sv=store.get(saveKey);if(sv&&sv.a===P[a][3]&&sv.b===P[b][3])Object.assign(S.hole,{hard:kind==="daily"&&!!sv.hard,trail:sv.trail,strokes:sv.strokes,hints:sv.hints,done:sv.done,gaveUp:sv.gaveUp,mullUsed:!!sv.mullUsed,n:sv.n??sv.strokes})}
+  if(saveKey){const sv=store.get(saveKey);if(sv&&sv.a===P[a][3]&&sv.b===P[b][3])Object.assign(S.hole,{hard:kind==="daily"&&!!sv.hard,trail:sv.trail,strokes:sv.strokes,hints:sv.hints,done:sv.done,gaveUp:sv.gaveUp,mullUsed:!!sv.mullUsed,n:sv.n??sv.strokes,rk:sv.rk})}
   if(S.clockOn&&(kind==="endless"||kind==="custom")&&!S.hole.done)S.hole.clock={t0:Date.now(),ticks:0};
   S.open=-1;S.filter="";S.tq="";S.peek={};save();
 }
@@ -558,7 +586,7 @@ setInterval(()=>{const h=S.hole;if(!h||!h.clock||h.done)return;
   const sb=$("#scorebox");if(!sb)return;
   if(changed){toast("Shot clock. +1 stroke");save();const cv=$("#clockv");sb.outerHTML=scoreHTML();if(cv)cv.remove()}
   else{const cv=$("#clockv");if(cv)cv.innerHTML=clockTxt()}},1000);
-function save(){const h=S.hole;if(!h||!h.saveKey)return;if(h.meta.late){const o=store.get(h.saveKey);if(o&&!o.late)h.meta.late=false}store.set(h.saveKey,{a:P[h.a][3],b:P[h.b][3],trail:h.trail,strokes:h.strokes,hints:h.hints,done:h.done,gaveUp:h.gaveUp,par:h.par,mullUsed:!!h.mullUsed,n:h.n,late:h.meta.late||undefined,clk:h.clock?h.clock.ticks:undefined,hard:h.hard||undefined})}
+function save(){const h=S.hole;if(!h||!h.saveKey)return;if(h.meta.late){const o=store.get(h.saveKey);if(o&&!o.late)h.meta.late=false}store.set(h.saveKey,{a:P[h.a][3],b:P[h.b][3],trail:h.trail,strokes:h.strokes,hints:h.hints,done:h.done,gaveUp:h.gaveUp,par:h.par,mullUsed:!!h.mullUsed,n:h.n,late:h.meta.late||undefined,clk:h.clock?h.clock.ticks:undefined,hard:h.hard||undefined,rk:h.rk})}
 const hardLive=()=>{const h=S.hole;return!!(h&&h.kind==="daily"&&h.hard&&!h.done)};
 const hardLocked=h=>h.trail.length>1||h.strokes>0||h.hints>0||h.done;
 const cur=()=>S.hole.trail[S.hole.trail.length-1].p;
@@ -628,9 +656,19 @@ function launchReset(){if(store.get("launch1"))return;
   try{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^(daily|round|mull):/.test(k))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k))}catch(e){}
   store.set("launch1",1)}
 // Anonymous play counts (no account, no personal data): abacus.jasoncameron.dev/get/dompesca-sepgolf/<key>
-function ping(k){try{fetch("https://abacus.jasoncameron.dev/hit/dompesca-sepgolf/"+k,{mode:"no-cors",keepalive:true}).catch(()=>{})}catch(e){}}
+const AB="https://abacus.jasoncameron.dev/";
+function ping(k){try{return fetch(AB+"hit/dompesca-sepgolf/"+k,{mode:"no-cors",keepalive:true}).catch(()=>{})}catch(e){return Promise.resolve()}}
+// Read one counter; a key nobody has hit yet is 0. Any other failure rejects so the crowd box stays hidden.
+const abGet=k=>fetch(AB+"get/dompesca-sepgolf/"+k).then(r=>r.ok?r.json().then(j=>j.value||0):r.status===404?0:Promise.reject(r.status));
+const akey=p=>P[p][3].replace(/[^A-Za-z0-9_.-]/g,"_");
+// Score buckets for the Daily crowd counters: 0 eagle, 1 birdie, 2 par, 3 bogey, 4 double, 5 triple or worse.
+const rBucket=h=>Math.max(0,Math.min(5,h.strokes-h.par+2));
 function countVisit(){const d=etDate();if(!store.get("player"))store.set("player",1),ping("players");if(store.get("seen")!==d)store.set("seen",d),ping("visitors-"+d)}
-function finish(gave){const h=S.hole;h.done=true;if(h.kind==="daily"&&!h.meta.late&&!gave)ping("daily-"+h.meta.n+"-holed");if(h.clock)h.clock.end=Date.now();h.gaveUp=gave;if(h.kind==="endless"){S.tally.holes++;S.tally.over+=gave?2:(h.strokes-h.par)}}
+function finish(gave){const h=S.hole;h.done=true;
+  if(h.kind==="daily"&&!gave)h.rk=routeRank(h)||undefined;
+  // On-the-day Daily finishes feed the crowd counts: total holed, score bucket, and each player used in between.
+  if(h.kind==="daily"&&!h.meta.late){const n="daily-"+h.meta.n;
+    h.pinged=Promise.all(gave?[ping(n+"-gaveup")]:[ping(n+"-holed"),ping(n+"-r"+rBucket(h)),...h.trail.slice(1,-1).map(st=>ping(n+"-p"+akey(st.p)))])}if(h.clock)h.clock.end=Date.now();h.gaveUp=gave;if(h.kind==="endless"){S.tally.holes++;S.tally.over+=gave?2:(h.strokes-h.par)}}
 
 function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Albatross","-2":"Eagle","-1":"Birdie","0":"Par","1":"Bogey","2":"Double bogey","3":"Triple bogey"})[rel]||"+"+rel}
 const sym=r=>!r||!r.done?"·":r.gaveUp?"❌":(r.strokes-r.par<=-2?"🦅":r.strokes-r.par===-1?"🐦":r.strokes-r.par===0?"⚪":r.strokes-r.par===1?"🟧":"🟥");
@@ -730,7 +768,7 @@ function rosterHTML(ti,u,seen){
 }
 function resultHTML(){
   if(S.hole.kind==="tutor")return"";
-  const h=S.hole,rel=h.strokes-h.par,best=warPath(h.a,h.b,h.allow);
+  const h=S.hole,rel=h.strokes-h.par,best=warPath(h.a,h.b,h.allow,h.kind==="daily");
   if(h.kind==="range"){const pl=steps=>`<ol>${steps.map(st=>`<li><button class="cardlink tb" data-card="${st.p}">${esc(P[st.p][0])}</button>${st.t>=0?` <span class="muted small">· ${esc(tname(st.t))}</span>`:""}</li>`).join("")}</ol>`;
     return`<section class="card result" aria-live="polite"><div class="eyebrow">${h.gaveUp?"Here's the way":"Holed out"}</div><div class="term">${h.gaveUp?"Next one":h.trail.length-1===h.best?"Pured it":"In the hole"}</div>
     <div class="paths"><div><div class="eyebrow">Best shortest route${best.war?` · ${best.war.toFixed(1)} WAR`:""}</div>${pl([{p:h.a,t:-1},...best])}</div></div>
@@ -749,15 +787,37 @@ function resultHTML(){
     ${rivalHTML()}${h.kind==="daily"&&!h.meta.late||h.kind==="round"&&h.meta.idx===8?nextInHTML():""}<div class="eyebrow">${h.gaveUp?"Here's how it could go":"Holed out"}${h.hard?" · Hard mode":""}</div>
     <div class="term ${!h.gaveUp&&rel>0?"over":""}">${esc(t)}</div>
     <div class="small muted">${h.gaveUp?`Shortest route was ${h.best} jump${h.best>1?"s":""}.`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}${h.hints?`, ${h.hints} hint${h.hints>1?"s":""}`:""}. Perfect route: ${h.best}.`}</div>
+    ${h.kind==="daily"?dailyExtrasHTML():""}
     <div class="paths">
       ${h.gaveUp?"":`<div><div class="eyebrow">Your route</div>${pathList(h.trail)}</div>`}
       ${h.rival?`<div><div class="eyebrow">Friend's route · ${h.rival.strokes}</div>${pathList(rivalSteps(h.rival,h.a,h.allow))}</div>`:""}
-      <div><div class="eyebrow">Best shortest route${best.war?` · ${best.war.toFixed(1)} WAR`:""}</div>${pathList([{p:h.a,t:-1},...best])}</div>
+      <div><div class="eyebrow">${h.kind==="daily"?`The Deep Cut · ${best.mid.toFixed(1)} WAR`:`Best shortest route${best.war?` · ${best.war.toFixed(1)} WAR`:""}`}</div>${pathList([{p:h.a,t:-1},...best])}</div>
     </div>
     <div class="sharebox" id="sharebox">${esc(shareText())}</div>
     ${pick}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
   </section>`;
 }
+// Daily result extras: route rank, streak, and how everyone else did (filled in by fillCrowd).
+function dailyExtrasHTML(){const h=S.hole;let o="";
+  if(!h.gaveUp){if(h.rk===undefined){h.rk=routeRank(h)||null;if(h.rk)save()}
+    if(h.rk)o+=`<div class="rrank"><div><span class="eyebrow">Deep Cut rank</span><b>${rankTxt(h.rk)}</b>${h.rk.rank===1&&!h.rk.over?`<span class="small">You found the Deep Cut</span>`:""}</div><div class="small muted">${h.rk.war.toFixed(1)} career WAR in between. Shortest route ranks first, then the least WAR. Same WAR is a tie.</div></div>`}
+  if(!h.meta.late){const {streak,best}=dailyStreak();if(streak)o+=`<div class="small streak">🔥 <b>${streak}</b>-day streak${best>streak?` · best ${best}`:""}</div>`}
+  return o+`<div id="crowd" class="crowd" hidden></div>`}
+const BUCKETS=["Eagle","Birdie","Par","Bogey","Double bogey","Triple or worse"];
+function fillCrowd(){const h=S.hole,box=$("#crowd");if(!box||!h||h.kind!=="daily"||!h.done)return;
+  const show=c=>{const b=$("#crowd");if(!b||S.hole!==h||!c)return;const total=c.r.reduce((x,y)=>x+y,0)+c.gave;if(!total)return;
+    const mine=h.gaveUp?6:rBucket(h),rows=[...c.r.map((v,i)=>[BUCKETS[i],v,i]),["Picked up",c.gave,6]].filter(x=>x[1]||x[2]===mine);
+    const worse=c.gave*(mine<6)+c.r.reduce((x,v,i)=>x+(i>mine?v:0),0),holed=c.r.reduce((x,y)=>x+y,0);
+    const pct=v=>Math.round(v/total*100)+"%";
+    b.innerHTML=`<div class="eyebrow">${h.meta.late?"How everyone did on the day":"How everyone's doing today"} · ${total} player${total>1?"s":""}</div>
+      <div class="bars">${rows.map(([k,v,i])=>`<span>${i===mine?`<b>${k} (you)</b>`:k}</span><div class="bar${i===mine?" me":""}" style="width:${Math.round(v/total*100)}%"></div><span>${pct(v)}</span>`).join("")}</div>
+      ${!h.meta.late&&total>1&&!h.gaveUp?`<div class="small">You beat ${Math.round(worse/(total-1)*100)}% of everyone else.</div>`:""}
+      ${c.mids.length&&holed?`<div class="small">Your picks: ${c.mids.map(m=>`${esc(P[m.p][0])} <b>${m.c&&m.c/holed<.005?"&lt;1":Math.round(m.c/holed*100)}%</b>`).join(" · ")} of finishers went through them.</div>`:""}`;
+    b.hidden=false};
+  if(h.crowd!==undefined)return show(h.crowd);
+  if(!h.crowdP){const n="daily-"+h.meta.n,mids=h.gaveUp?[]:h.trail.slice(1,-1).map(st=>st.p);
+    h.crowdP=(h.pinged||Promise.resolve()).then(()=>Promise.all([abGet(n+"-gaveup"),...[0,1,2,3,4,5].map(i=>abGet(n+"-r"+i)),...mids.map(p=>abGet(n+"-p"+akey(p)))]))
+      .then(v=>({gave:v[0],r:v.slice(1,7),mids:mids.map((p,i)=>({p,c:v[7+i]}))}),()=>null).then(c=>{h.crowd=c;show(c)})}}
 function challengeLink(){const h=S.hole,C=h.C;let l=BASE_URL+"#ch."+P[h.a][3]+"."+P[h.b][3];
   if(C&&C.strict&&!allYears(C))l+=".y"+C.from+"-"+C.to;if(C&&C.fr&&C.fr.length)l+=".t"+C.fr.join("-");
   if(h.done&&!h.gaveUp)l+=".r"+h.strokes+"-"+h.trail.slice(1).map(st=>scr(P[st.p][3],1)).join("-");return l}
@@ -778,7 +838,8 @@ function shareText(){
   const head=h.kind==="daily"?`⛳ Separation Golf · Daily #${h.meta.n}${h.hard?" · Hard mode 🔥":""}`:h.kind==="round"?`⛳ Separation Golf · Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:`⛳ Separation Golf`;
   const balls=h.gaveUp?"❌":h.trail.slice(1).map((st,i)=>i===h.trail.length-2?"⛳":"⚾").join("")+(h.hints?" "+"💡".repeat(h.hints):"");
   const line=(h.gaveUp?`Par ${h.par} · picked up`:`Par ${h.par} · ${h.strokes} strokes · ${term(rel,h.strokes)}`)+(h.mullUsed?" · mulligan":"");
-  return [head,h.meta.label||"",`${P[h.a][0]} → ${P[h.b][0]}`,line,balls,h.kind==="daily"||h.kind==="round"?BASE_URL:challengeLink()].filter(Boolean).join("\n");
+  const st=h.kind==="daily"&&!h.meta.late?dailyStreak().streak:0,extra=h.kind==="daily"&&!h.gaveUp&&h.rk?`Deep Cut ${rankTxt(h.rk)}${st>1?` · 🔥 ${st}-day streak`:""}`:st>1?`🔥 ${st}-day streak`:"";
+  return [head,h.meta.label||"",`${P[h.a][0]} → ${P[h.b][0]}`,line,extra,balls,h.kind==="daily"||h.kind==="round"?BASE_URL:challengeLink()].filter(Boolean).join("\n");
 }
 // Daily 9 scorecard
 function roundState(){const d=S.rd.date,res=[];for(let i=0;i<9;i++)res.push(roundRec(d,i));return res}
@@ -919,29 +980,32 @@ function welcomeHTML(){return`<h2 class="mtitle wt" id="mtitle">Welcome to Separ
   <p>Get from the <b>tee</b> player to the <b>pin</b> by jumping teammate to teammate. Tap a season, pick a teammate. Each jump is a stroke.</p>
   <div class="scoring row3"><div><b>Eagle</b><span>shortest route</span></div><div><b>Birdie</b><span>+1 jump</span></div><div><b>Par</b><span>+2 jumps</span></div></div>
   <p class="small">Hints and going back cost a stroke. One free <b>Mulligan</b> a hole (not on the Daily). Scores stop at 10.</p>
+  <p class="small"><b>Deep Cut rank</b> on the Daily: strokes first, then ties go to the route through the least career WAR. Hole it every day for a <b>streak</b>.</p>
   <ul class="small tight"><li><b>Daily</b> one hole for everyone, new at midnight ET. <b>Hard mode</b> and the <b>Archive</b> are on the Daily bar.</li>
   <li><b>Daily 9</b> nine holes, tougher as you go.</li>
   <li><b>Endless</b> pick your next pin. <b>Custom</b> set the players, years and teams. <b>Range</b> practice, no score.</li></ul>
-  <p class="small">Tap a name or photo for his baseball card. The <b>HOF</b> has the biggest connectors and longest careers. Tap the logo to get home.</p>
+  <p class="small">Tap a name or photo for his baseball card. The <b>HOF</b> has the biggest connectors and longest careers.</p>
   <div class="actions"><button class="btn primary" id="playball">Play ball</button><button class="btn" id="tutor2">Tutorial</button></div>
   <label class="small chk"><input type="checkbox" id="nowelcome" ${store.get("hideWelcome")?"checked":""}> Don't show this when I open the game</label>`}
+// Streak = Dailies holed on the day, in a row (archive plays don't count).
+function dailyStreak(){const ok=d=>{const r=store.get("daily:"+d);return r&&r.done&&!r.gaveUp&&!r.late};
+  let d=etDate();if(!ok(d))d=prevDay(d);let streak=0;while(ok(d)){streak++;d=prevDay(d)}
+  let best=0;try{const ds=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith("daily:")&&ok(k.slice(6)))ds.push(k.slice(6))}ds.sort();let run=0,prev=null;
+    for(const x of ds){run=prev&&prevDay(x)===prev?run+1:1;best=Math.max(best,run);prev=x}}catch(e){}
+  return{streak,best}}
 function statsHTML(){
   const recs=[],rounds={};
   try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith("daily:"))recs.push(store.get(k));
     else if(k.startsWith("round:")){const [,d,n]=k.split(":");(rounds[d]=rounds[d]||[])[+n]=store.get(k)}}}catch(e){}
   let played=0,fin=0,sum=0;const dist={};
   for(const r of recs){if(!r||!r.done||r.par==null)continue;played++;const t=r.gaveUp?"Picked up":term(r.strokes-r.par,r.strokes);dist[t]=(dist[t]||0)+1;if(!r.gaveUp){fin++;sum+=r.strokes-r.par}}
-  const ok=d=>{const r=store.get("daily:"+d);return r&&r.done&&!r.gaveUp&&!r.late};
-  let d=etDate();if(!ok(d))d=prevDay(d);let streak=0;while(ok(d)){streak++;d=prevDay(d)}
-  const days=recs.length?Object.keys(rounds):[];let best=0;
-  try{const ds=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith("daily:")&&ok(k.slice(6)))ds.push(k.slice(6))}ds.sort();let run=0,prev=null;
-    for(const x of ds){run=prev&&prevDay(x)===prev?run+1:1;best=Math.max(best,run);prev=x}}catch(e){}
+  const {streak,best}=dailyStreak(),ranks=recs.filter(r=>r&&r.rk&&!r.gaveUp).map(r=>r.rk),bestRk=ranks.length?ranks.reduce((x,y)=>y.rank<x.rank?y:x):null;
   const full=Object.values(rounds).filter(a=>a.length===9&&a.every(r=>r&&r.done)).map(a=>roundTotals(a)),bestR=full.length?Math.min(...full.map(t=>t.st-t.par)):null;
   const order=["Hole in one","Eagle","Birdie","Par","Bogey","Double bogey","Triple bogey"],keys=[...order.filter(k=>dist[k]),...Object.keys(dist).filter(k=>!order.includes(k)&&k!=="Picked up"),...(dist["Picked up"]?["Picked up"]:[])];
   const max=Math.max(1,...Object.values(dist));
   return`<h2 class="mtitle" id="mtitle">Your stats</h2>
   <div class="tiles"><div class="tile"><b>${played}</b><span>Dailies</span></div><div class="tile"><b>${played?Math.round(fin/played*100):0}%</b><span>Holed out</span></div><div class="tile"><b>${streak}</b><span>Streak</span></div><div class="tile"><b>${best}</b><span>Best streak</span></div></div>
-  <p class="small">${fin?`Average on the Daily: ${relTxt(Math.round(sum/fin*10)/10)} to par.`:"Finish a Daily to start your record."} ${full.length?`Daily 9 rounds finished: ${full.length}, best ${relTxt(bestR)}.`:""}</p>
+  <p class="small">${fin?`Average on the Daily: ${relTxt(Math.round(sum/fin*10)/10)} to par.`:"Finish a Daily to start your record."} ${bestRk?`Best Deep Cut rank: ${rankTxt(bestRk)}.`:""} ${full.length?`Daily 9 rounds finished: ${full.length}, best ${relTxt(bestR)}.`:""}</p>
   ${keys.length?`<h3>Daily scores</h3><div class="bars">${keys.map(k=>`<span>${k}</span><div class="bar" style="width:${Math.round(dist[k]/max*100)}%"></div><span>${dist[k]}</span>`).join("")}</div>`:""}
   <p class="small muted">Stats are saved on this device.</p>`}
 function bindModal(){const t2=$("#tutor2");if(t2)t2.onclick=()=>{closeModal();startTutor();render();window.scrollTo({top:0})};document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{closeModal();S.mode="daily";startDaily(b.dataset.day);render();window.scrollTo({top:0})});
@@ -959,7 +1023,7 @@ async function copy(text,boxId){try{await navigator.clipboard.writeText(text);to
 function keepFocus(id,fn){const el=$("#"+id),pos=el.selectionStart;fn();render();const n=$("#"+id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}}
 
 function bindCards(){document.querySelectorAll("[data-card]").forEach(b=>b.onclick=e=>{e.stopPropagation();openCard(+b.dataset.card)})}
-function bind(){bindCards();
+function bind(){bindCards();fillCrowd();
   document.querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{const ti=+b.dataset.team;S.open=S.open===ti?-1:ti;S.filter="";render();const r=document.querySelector(".roster");r&&r.scrollIntoView({block:"nearest",behavior:"smooth"})});
   document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>jump(+b.dataset.p,+b.dataset.t));
   document.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{S.diff=b.dataset.diff;startEndless();render()});
