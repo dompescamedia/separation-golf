@@ -275,7 +275,7 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .pwrap .pbtn.target+.cardbtn{border-color:var(--red);border-width:2px 2px 2px 1px}
 /* Card button: the right quarter of each roster tile, its own full-height strip so a thumb aimed at it can't pick the player. */
 .cardbtn{flex:0 0 25%;min-width:44px;max-width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line);border-left:1px solid var(--line);background:var(--bg);border-radius:0 3px 3px 0;padding:4px 2px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.cardbtn svg{width:14px;height:19px;overflow:visible}
+.cardbtn svg{width:20px;height:20px}
 .cardbtn:hover,.cardbtn:active{color:var(--red);border-color:var(--red)}
 .bbcard{position:relative;max-width:560px;width:100%;background:var(--cb);color:var(--cb-ink);border:8px solid var(--cb-edge);border-radius:12px;box-shadow:6px 6px 0 var(--shadow);padding:14px;display:flex;flex-direction:column;gap:10px}
 .bbcard .x{background:var(--cb);border-color:var(--cb-ink);color:var(--cb-ink)}
@@ -387,7 +387,7 @@ input,select,textarea{font-size:16px!important}
 .plist{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:62vh}
 .pbtn{padding:10px 12px;min-height:56px}
 .pbtn .pn{font-size:15.5px}.pbtn .py{font-size:13.5px}
-.cardbtn{font-size:11px}.cardbtn svg{width:17px;height:23px}
+.cardbtn{font-size:11px}.cardbtn svg{width:26px;height:26px}
 .roster input,.tsearch input,.search input,.mfind{padding:12px 12px}
 .sugg button{padding:13px 14px}
 .eyebrow,.who .lbl,.score span{font-size:12px}
@@ -828,8 +828,8 @@ function nowHTML(){
   return s+`</div></section>`;
 }
 function norm(s){return s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase()}
-// Card button icon: a baseball card with a batter in his stance.
-const CARD_ICO=`<svg viewBox="0 0 24 32" aria-hidden="true"><rect x="1" y="1" width="22" height="30" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><g fill="currentColor"><circle cx="10.5" cy="9" r="2.6"/><path d="M8.6 12.2h4.2l1.2 5.6-1.4.6 1.2 3.6 2 4.6h-2.4l-2-4.2-1.6 4.2H7.4l2-5.6-.6-4.2z"/><path d="M12.4 13.2l2.6-1.2.9 1.1-2.9 1.9z"/></g><path d="M15.2 12.4l4.6-7.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+// Card button icon: a baseball card with a ball on it (Dom picked it from 10).
+const CARD_ICO=`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4.5" y="2" width="15" height="20" rx="2"/><circle cx="12" cy="10.5" r="4"/><path d="M10 7.3c.9 1.4.9 5 0 6.4M14 7.3c-.9 1.4-.9 5 0 6.4" stroke-width="1.2"/><path d="M8 18h8"/></svg>`;
 const pbtn=(p,ti,seen,sub)=>`<div class="pwrap"><button class="pbtn${p===S.hole.b?" target":""}${S.mode==="tutor"&&S.tut&&S.tut.pl===p?" tut":""}${seen.has(p)?" seen":""}" data-p="${p}" data-t="${ti}"><span class="pn">${p===S.hole.b?'<span class="flag"></span>':""}${esc(P[p][0])}</span><span class="py">${sub}</span></button><button class="cardbtn" data-card="${p}" aria-label="${esc(P[p][0])} baseball card">${CARD_ICO}Card</button></div>`;
 function teammateResults(u,seen){const q=norm(S.tq.trim());if(q.length<2)return"";const out=[];
   for(const ti of teamsOf(u))for(const p of T[ti][2])if(p!==u&&norm(P[p][0]).includes(q))out.push([p,ti]);
