@@ -271,9 +271,12 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .cardlink.tb{font-weight:600}
 .who .nm.cardlink{display:block;width:100%}
 .pwrap{position:relative;display:flex;min-width:0}
-.pwrap .pbtn{flex:1;padding-right:44px}
-.cardbtn{position:absolute;top:5px;right:5px;border:1px solid var(--line);background:var(--bg);border-radius:2px;padding:1px 4px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.cardbtn:hover{color:var(--red);border-color:var(--red)}
+.pwrap .pbtn{flex:1;border-right-width:0;border-radius:3px 0 0 3px}
+.pwrap .pbtn.target+.cardbtn{border-color:var(--red);border-width:2px 2px 2px 1px}
+/* Card button: the right quarter of each roster tile, its own full-height strip so a thumb aimed at it can't pick the player. */
+.cardbtn{flex:0 0 25%;min-width:44px;max-width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line);border-left:1px dashed var(--line);background:var(--bg);border-radius:0 3px 3px 0;padding:4px 2px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cardbtn::before{content:"";width:12px;height:16px;border:1.5px solid currentColor;border-radius:2px}
+.cardbtn:hover,.cardbtn:active{color:var(--red);border-color:var(--red)}
 .bbcard{position:relative;max-width:560px;width:100%;background:var(--cb);color:var(--cb-ink);border:8px solid var(--cb-edge);border-radius:12px;box-shadow:6px 6px 0 var(--shadow);padding:14px;display:flex;flex-direction:column;gap:10px}
 .bbcard .x{background:var(--cb);border-color:var(--cb-ink);color:var(--cb-ink)}
 .bbhead{background:var(--cb-band);color:var(--cb-on-band);margin:-14px -14px 0;padding:14px 56px 12px 14px;border-radius:4px 4px 0 0;display:flex;align-items:flex-end;gap:12px}
@@ -384,8 +387,7 @@ input,select,textarea{font-size:16px!important}
 .plist{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:62vh}
 .pbtn{padding:10px 12px;min-height:56px}
 .pbtn .pn{font-size:15.5px}.pbtn .py{font-size:13.5px}
-.pwrap .pbtn{padding-right:58px}
-.cardbtn{top:6px;right:6px;padding:6px 7px;font-size:11px}
+.cardbtn{font-size:11px}.cardbtn::before{width:14px;height:19px}
 .roster input,.tsearch input,.search input,.mfind{padding:12px 12px}
 .sugg button{padding:13px 14px}
 .eyebrow,.who .lbl,.score span{font-size:12px}
@@ -431,7 +433,7 @@ input,select,textarea{font-size:16px!important}
 .qbtn{width:30px;height:30px;border:2px solid var(--ink);border-radius:50%;background:var(--card);font-family:var(--mono);font-weight:700;font-size:14px;line-height:1;padding:0;flex:none}
 .hardsw input:focus-visible+.trk{outline:2px solid var(--pin);outline-offset:2px}
 body.hardon .cardbtn{display:none}
-body.hardon .pwrap .pbtn{padding-right:12px}
+body.hardon .pwrap .pbtn{border-right-width:1px;border-radius:3px}
 [hidden]{display:none!important}
 footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
 /* Seasonal looks: html[data-season] is set by date (or the footer picker). Scorecard is the base look above. October is a night game in both modes. */
