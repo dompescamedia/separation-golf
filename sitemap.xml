@@ -4,4 +4,10 @@
     <loc>https://separationgolf.com/</loc>
     <changefreq>daily</changefreq>
   </url>
+  <url>
+    <loc>https://separationgolf.com/about.html</loc>
+  </url>
+  <url>
+    <loc>https://separationgolf.com/privacy.html</loc>
+  </url>
 </urlset>
