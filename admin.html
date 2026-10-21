@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Separation Golf Counts</title>
+<link rel="icon" type="image/svg+xml" href="logo-mark.svg?v=2">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Bitter:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+:root{--bg:#f6eedb;--card:#fffaf0;--ink:#1d2a44;--muted:#6b6a63;--line:#d9ceb4;--red:#b3262d;--blue:#24508f;--green:#2f7a4a;--bar2:#c9b78f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101826;--card:#182235;--ink:#f6eedb;--muted:#a9a596;--line:#2c3a55;--red:#ff6b6b;--blue:#7fb0ff;--green:#6fcf8e;--bar2:#4c5a75}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Bitter,Georgia,serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+h1{margin:0;font:400 38px/1 Yellowtail,cursive;color:var(--red);transform:rotate(-2deg);transform-origin:left bottom}
+.eyebrow{font:700 11px/1.3 "Courier Prime",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+button{font:700 12px "Courier Prime",monospace;text-transform:uppercase;letter-spacing:.04em;height:36px;padding:0 12px;border:2px solid var(--ink);border-radius:4px;background:var(--card);color:var(--ink);cursor:pointer}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.tile{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:10px 12px}
+.tile b{display:block;font:700 30px/1.1 Bitter,serif;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:12px;margin-bottom:18px;overflow-x:auto}
+.chart{display:flex;align-items:flex-end;gap:6px;height:160px;padding-top:8px}
+.col{flex:1 1 0;min-width:14px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bars{display:flex;align-items:flex-end;gap:2px;width:100%;flex:1}
+.bars i{flex:1;background:var(--blue);border-radius:2px 2px 0 0;min-height:1px}
+.bars i.h{background:var(--green)}
+.col span{font:11px "Courier Prime",monospace;color:var(--muted);margin-top:4px;white-space:nowrap}
+.key{display:flex;gap:14px;margin-top:8px}
+.key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;min-width:640px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font:700 11px "Courier Prime",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+th:first-child,td:first-child{text-align:left}
+.mix{display:inline-flex;width:120px;height:10px;border-radius:2px;overflow:hidden;background:var(--line);vertical-align:middle}
+.mix i{display:block;height:100%}
+.na{color:var(--muted)}
+p.note{color:var(--muted);font-size:13px;margin:6px 0 0}
+#err{color:var(--red)}
+</style>
+<main>
+<header>
+  <div><div class="eyebrow">Separation Golf · admin</div><h1>Play counts</h1></div>
+  <div><span class="eyebrow" id="stamp"></span> <button id="go">Refresh</button></div>
+</header>
+<div class="tiles" id="tiles"></div>
+<div class="card">
+  <div class="eyebrow">Last 30 days</div>
+  <div class="chart" id="chart"></div>
+  <div class="key eyebrow"><span><i style="background:var(--blue)"></i>Visitors</span><span><i style="background:var(--green)"></i>Holed the Daily</span></div>
+</div>
+<div class="card"><table id="tbl"></table></div>
+<p class="note">Live from the anonymous counters on the site (no accounts, no personal data). A visitor is one device per Eastern day. Holed and gave up only count the Daily on its own day. Score mix runs eagle to triple bogey or worse. Columns show a dash before that counter existed.</p>
+<p class="note" id="err"></p>
+</main>
+<script>
+const AB="https://abacus.jasoncameron.dev/get/dompesca-sepgolf/",START="2026-10-15";
+const MIX=[["Eagle","#2f7a4a"],["Birdie","#6aa84f"],["Par","#24508f"],["Bogey","#d9a441"],["Double","#e07b39"],["Triple+","#b3262d"]];
+// A key nobody has hit yet is a 404, which means 0. Other failures come back as null.
+const get=k=>fetch(AB+k).then(r=>r.ok?r.json().then(j=>j.value||0):r.status===404?0:null).catch(()=>null);
+const etDate=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York"}).format(new Date());
+const addDay=(d,n)=>{const t=new Date(d+"T12:00:00Z");t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
+const fmt=n=>n==null?'<span class="na">?</span>':n.toLocaleString();
+const dash=n=>n?fmt(n):'<span class="na">–</span>';
+const pct=(a,b)=>b?Math.round(100*a/b)+"%":'<span class="na">–</span>';
+const short=d=>new Date(d+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
+// Run fetches a few at a time so a long history doesn't fire hundreds at once.
+async function pool(jobs,size=8){const out=new Array(jobs.length);let i=0;
+  await Promise.all(Array.from({length:size},async()=>{while(i<jobs.length){const j=i++;out[j]=await jobs[j]()}}));return out}
+async function load(){
+  document.getElementById("err").textContent="";document.getElementById("stamp").textContent="Loading…";
+  const today=etDate(),days=[];for(let d=START,n=1;d<=today;d=addDay(d,1),n++)days.push({d,n});
+  const recent=days.slice(-30).reverse();
+  const keys=["players"];
+  for(const {d,n} of recent)keys.push("visitors-"+d,"plays-"+d,`daily-${n}-started`,`daily-${n}-holed`,`daily-${n}-gaveup`,...MIX.map((_,i)=>`daily-${n}-r${i}`));
+  const vals=await pool(keys.map(k=>()=>get(k))),V=Object.fromEntries(keys.map((k,i)=>[k,vals[i]]));
+  if(vals.every(v=>v==null)){document.getElementById("err").textContent="Couldn't reach the counter service. Try Refresh in a minute.";}
+  const rows=recent.map(({d,n})=>({d,n,vis:V["visitors-"+d],plays:V["plays-"+d],start:V[`daily-${n}-started`],holed:V[`daily-${n}-holed`],gave:V[`daily-${n}-gaveup`],mix:MIX.map((_,i)=>V[`daily-${n}-r${i}`]||0)}));
+  const t=rows[0]||{},y=rows[1]||{};
+  document.getElementById("tiles").innerHTML=[
+    ["Devices ever",V.players],["Visitors today",t.vis],["Holed today",t.holed],["Visitors yesterday",y.vis],["Holed yesterday",y.holed],
+    ["Avg visitors / day",rows.length?Math.round(rows.reduce((s,r)=>s+(r.vis||0),0)/rows.length):0]
+  ].map(([l,v])=>`<div class="tile"><span class="eyebrow">${l}</span><b>${fmt(v)}</b></div>`).join("");
+  const max=Math.max(1,...rows.map(r=>r.vis||0));
+  document.getElementById("chart").innerHTML=rows.slice().reverse().map(r=>`<div class="col" title="${r.d}: ${r.vis||0} visitors, ${r.holed||0} holed"><div class="bars"><i style="height:${100*(r.vis||0)/max}%"></i><i class="h" style="height:${100*(r.holed||0)/max}%"></i></div><span>${short(r.d).replace(/^\w+ /,"")}</span></div>`).join("");
+  document.getElementById("tbl").innerHTML=`<tr><th>Day</th><th>Visitors</th><th>Games played</th><th>Started Daily</th><th>Holed</th><th>Gave up</th><th>Holed / visitors</th><th>Score mix</th></tr>`+
+    rows.map(r=>{const tot=r.mix.reduce((a,b)=>a+b,0);
+      return `<tr><td>${short(r.d)} · Daily #${r.n}</td><td>${fmt(r.vis)}</td><td>${dash(r.plays)}</td><td>${dash(r.start)}</td><td>${fmt(r.holed)}</td><td>${dash(r.gave)}</td><td>${pct(r.holed||0,r.vis)}</td>`+
+      `<td>${tot?`<span class="mix" title="${MIX.map(([l],i)=>l+" "+r.mix[i]).join(", ")}">${r.mix.map((c,i)=>c?`<i style="width:${100*c/tot}%;background:${MIX[i][1]}"></i>`:"").join("")}</span>`:'<span class="na">–</span>'}</td></tr>`}).join("");
+  document.getElementById("stamp").textContent="Updated "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+}
+document.getElementById("go").onclick=load;load();
+</script>

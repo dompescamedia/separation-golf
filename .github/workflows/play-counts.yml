@@ -19,15 +19,17 @@ jobs:
           {
             echo "# Play counts"
             echo
+            echo "Live view: https://separationgolf.com/admin.html"
+            echo
             echo "Updated $(TZ=America/New_York date '+%b %-d, %Y %-I:%M %p') Eastern."
             echo
             echo "- Devices that have ever opened the game: $(get players)"
             echo
-            echo "| Day | Visitors | Holed the Daily |"
-            echo "|---|---|---|"
+            echo "| Day | Visitors | Holed the Daily | Gave up |"
+            echo "|---|---|---|---|"
             n=1; d=2026-10-15; today=$(TZ=America/New_York date +%F)
             while [[ "$d" < "$today" || "$d" == "$today" ]]; do
-              echo "| $d (Daily #$n) | $(get visitors-$d) | $(get daily-$n-holed) |"
+              echo "| $d (Daily #$n) | $(get visitors-$d) | $(get daily-$n-holed) | $(get daily-$n-gaveup) |"
               n=$((n+1)); d=$(date -d "$d +1 day" +%F)
             done
           } > COUNTS.md
