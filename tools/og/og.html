@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Graduate&family=Bitter:wght@400;600;700&family=Courier+Prime:wght@700&display=swap">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1200px;height:630px;background:radial-gradient(circle at 15% 0%,#2448a8,#16328a 55%,#132c7c);font-family:Bitter,serif;color:#f6eedb;position:relative;overflow:hidden}
+.card{position:absolute;left:52px;top:44px;width:1096px;height:540px;background:#0f2466;border:5px solid #f6eedb;border-radius:12px;box-shadow:12px 12px 0 #e21f36;display:flex;padding:40px 46px 36px 62px;gap:30px}
+.l{flex:1 1 auto;display:flex;flex-direction:column}
+.by{font:700 21px "Courier Prime",monospace;letter-spacing:.32em;color:#f2c94c}
+.logo{font:400 92px/1 Yellowtail,cursive;color:#f6eedb;text-shadow:4px 4px 0 #e21f36;transform:rotate(-3deg);transform-origin:left bottom;margin:10px 0 22px -4px;white-space:nowrap}
+.h{font:400 43px/1.12 Graduate,serif;text-transform:uppercase;letter-spacing:.01em}
+.h b{color:#f2c94c;font-weight:400}
+.s{font:400 25px/1.35 Bitter,serif;color:#c9d4f0;margin-top:16px}
+.s b{color:#f6eedb;font-weight:700}
+.url{margin-top:auto;font:700 23px "Courier Prime",monospace;letter-spacing:.3em;color:#ff5a6a}
+.r{flex:0 0 400px;background:#16328a;border:2px solid #3a56a8;border-radius:10px;padding:18px 22px 14px;position:relative}
+.ey{font:700 15px "Courier Prime",monospace;letter-spacing:.24em;color:#b4c3e8;text-align:center;margin-bottom:8px}
+.row{display:flex;align-items:center;gap:12px;height:37px}
+.tag{flex:0 0 42px;font:700 14px "Courier Prime",monospace;letter-spacing:.12em;color:#f2c94c}
+.nm{font:700 27px Bitter,serif;white-space:nowrap}
+.lk{display:flex;align-items:center;gap:12px;height:37px;padding-left:42px;position:relative}
+.lk:before{content:"";position:absolute;left:62px;top:-4px;bottom:-4px;border-left:3px dotted #6f87c8}
+.j{position:relative;width:44px;height:38px;flex:none;margin-left:-1px;z-index:1}
+.j svg{width:44px;height:38px;display:block}
+.j span{position:absolute;left:0;right:0;top:14px;text-align:center;font:700 13px "Courier Prime",monospace}
+.tm{font:600 19px Bitter,serif;color:#b4c3e8}
+.res{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px;padding-top:8px;border-top:2px solid #3a56a8}
+.res .n{font:700 16px "Courier Prime",monospace;letter-spacing:.14em;color:#f6eedb}
+.res .w{font:400 42px/1 Yellowtail,cursive;color:#ff5a6a;transform:rotate(-4deg)}
+</style></head><body><div class="card">
+<div class="l"><div class="by">DOM PESCA’S</div><div class="logo">Separation Golf</div>
+<div class="h">Connect two MLB players through their <b>teammates</b>.</div>
+<div class="s">Every jump is a stroke. <b>Fewest strokes wins.</b><br>A new hole every day.</div>
+<div class="url">SEPARATIONGOLF.COM</div></div>
+<div class="r"><div class="ey">EXAMPLE HOLE</div><div id="route"></div>
+<div class="res"><span class="n">4 STROKES · PAR 6</span><span class="w">Eagle!</span></div></div>
+</div>
+<script>
+const J=(c1,c2,tc,y)=>`<div class="j"><svg viewBox="0 0 40 34"><path d="M14 2.2 8.4 3.6 1.6 9.6 5.6 15.4 9.4 12.6V32.6H30.6V12.6l3.8 2.8 4-5.8-6.8-6-5.6-1.4C24.6 5.4 15.4 5.4 14 2.2z" fill="${c1}" stroke="${c2}" stroke-width="2.2" stroke-linejoin="round"/></svg><span style="color:${tc}">’${y}</span></div>`;
+const P=[["TEE","Willie Mays"],["","Tom Seaver"],["","Bobby Bonilla"],["","Albert Pujols"],["PIN","Shohei Ohtani"]];
+const L=[["#002D72","#FF5910","#fff","72","1972 Mets"],["#27251F","#C4CED4","#fff","86","1986 White Sox"],["#C41E3A","#f6eedb","#fff","01","2001 Cardinals"],["#BA0021","#f6eedb","#fff","18","2018 Angels"]];
+document.getElementById("route").innerHTML=P.map((p,i)=>`<div class="row"><span class="tag">${p[0]}</span><span class="nm">${p[1]}</span></div>`+(L[i]?`<div class="lk">${J(...L[i].slice(0,4))}<span class="tm">${L[i][4]}</span></div>`:"")).join("");
+</script></body></html>
