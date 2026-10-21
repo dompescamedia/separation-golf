@@ -151,7 +151,7 @@ async function load(){
 }
 // One day's deeper counters: modes, Daily 9, hints, solve time, challenges.
 async function details(){const d=$("detDay").value;if(!d)return;const n=dnum(d);$("det").innerHTML='<p class="note">Loading…</p>';
-  const ks=[...MODES.map(([m])=>`mode-${m}-${d}`),`d9-${d}-started`,`d9-${d}-done`,...[...Array(16)].map((_,k)=>`d9-${d}-s${k}`),`daily-${n}-hint`,`daily-${n}-back`,...TIMES.map((_,k)=>`daily-${n}-t${k}`),`chal-made-${d}`,`chal-played-${d}`,`daily-${n}-holed`];
+  const ks=[...MODES.map(([m])=>`mode-${m}-${d}`),`d9-${d}-started`,`d9-${d}-done`,...[...Array(16)].map((_,k)=>`d9-${d}-s${k}`),`daily-${n}-hint`,`daily-${n}-back`,...TIMES.map((_,k)=>`daily-${n}-t${k}`),`chal-made-${d}`,`chal-played-${d}`,`from-share-${d}`,`daily-${n}-holed`];
   const V=await getMany(ks);if($("detDay").value!==d)return;
   const s9=[...Array(16)].map((_,k)=>V[`d9-${d}-s${k}`]||0),n9=s9.reduce((a,b)=>a+b,0),a9=n9?s9.reduce((s,c,k)=>s+c*(k-5),0)/n9:null;
   const tm=TIMES.map((_,k)=>V[`daily-${n}-t${k}`]||0),nt=tm.reduce((a,b)=>a+b,0);
@@ -160,7 +160,8 @@ async function details(){const d=$("detDay").value;if(!d)return;const n=dnum(d);
   $("det").innerHTML=`<div class="eyebrow sub">Games by mode</div><div class="mini">${MODES.map(([m,l])=>box(l,dash(V[`mode-${m}-${d}`]))).join("")}</div>
     <div class="eyebrow sub">Daily 9</div><div class="mini">${box("Started",dash(V[`d9-${d}-started`]))}${box("Finished",dash(V[`d9-${d}-done`]))}${box("Avg vs par",a9==null?'<span class="na">–</span>':sgn(a9))}</div>
     <div class="eyebrow sub">The Daily</div><div class="mini">${box("Used a hint",dash(V[`daily-${n}-hint`]))}${box("Used back",dash(V[`daily-${n}-back`]))}${box("Typical solve time",med||'<span class="na">–</span>')}${TIMES.map((l,k)=>box(l,dash(tm[k]))).join("")}</div>
-    <div class="eyebrow sub">Challenge links</div><div class="mini">${box("Sent",dash(V[`chal-made-${d}`]))}${box("Played",dash(V[`chal-played-${d}`]))}</div>`}
+    <div class="eyebrow sub">Challenge links</div><div class="mini">${box("Sent",dash(V[`chal-made-${d}`]))}${box("Played",dash(V[`chal-played-${d}`]))}</div>
+    <div class="eyebrow sub">Share links</div><div class="mini">${box("Visits from a shared result",dash(V[`from-share-${d}`]))}</div>`}
 $("detDay").onchange=details;$("go").onclick=load;load();
 
 // ---- Locked section. The passcode is a curtain against casual spoilers, not real security: the picks are computable from index.html.
