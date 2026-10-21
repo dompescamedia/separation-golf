@@ -95,6 +95,9 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .mark small{display:block;font-family:var(--mono);font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;transform:rotate(2deg);margin-bottom:2px}
 .mark .byline{color:inherit;text-decoration:none}
 .mark .home{color:inherit;text-decoration:none;display:block}
+.xm{display:none!important}.xfollow{display:inline-flex;align-items:center;justify-content:center;color:inherit;text-decoration:none}
+@media (max-width:700px){.xm{display:inline-flex!important;margin-left:auto;align-self:flex-start}.xd{display:none!important}}
+footer .feedback{margin-top:8px}footer .feedback a{color:inherit;font-weight:700}
 .mark .byline:hover,.mark .byline:focus-visible{text-decoration:underline}
 .bat{display:block;width:min(220px,56vw);height:auto;margin-top:2px}
 .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -490,11 +493,13 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
         <path d="M150,8.5 C175,6 200,5.4 245,5.6" stroke="var(--ink)" stroke-width="1" fill="none" opacity=".35"/>
       </svg></a>
     </h1>
+    <a class="ibtn xfollow xm" href="https://x.com/SeparationGolf" target="_blank" rel="noopener" aria-label="Follow @SeparationGolf on X" title="Follow @SeparationGolf on X"><svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.3L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg></a>
     <div class="tools">
       <button class="ibtn" id="openhelp" aria-label="How to play">?</button>
       <button class="ibtn" id="opentutor">Tutorial</button>
       <button class="ibtn" id="openhall" aria-label="Hall of Fame">HOF</button>
       <button class="ibtn" id="openstats">Stats</button>
+      <a class="ibtn xfollow xd" href="https://x.com/SeparationGolf" target="_blank" rel="noopener" aria-label="Follow @SeparationGolf on X" title="Follow @SeparationGolf on X"><svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.3L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg></a>
     </div>
     <div class="seg" role="group" aria-label="Mode">
         <button id="m-daily" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V3l12 4.5L6 12" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Daily</span></button>
@@ -505,7 +510,7 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
     </div>
   </header>
   <main id="main"><div class="card loading">Loading every big-league roster, 1871–2026…</div></main>
-  <footer>Fan-made, not affiliated with Major League Baseball. Rosters from the Lahman Baseball Database (1871–2025) and MLB (2026). WAR from Baseball-Reference.<div class="seasonpick"><label for="seasonsel">Colors </label><select id="seasonsel"></select></div></footer>
+  <footer>Fan-made, not affiliated with Major League Baseball. Rosters from the Lahman Baseball Database (1871–2025) and MLB (2026). WAR from Baseball-Reference.<div class="feedback">Ideas or problems? <a href="mailto:separationgolfadmin@gmail.com?subject=Separation%20Golf%20feedback">Send feedback</a> to separationgolfadmin@gmail.com</div><div class="seasonpick"><label for="seasonsel">Colors </label><select id="seasonsel"></select></div></footer>
 </div>
 <div class="modal" id="modal" hidden><div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="mtitle"><button class="x" id="mclose" aria-label="Close">×</button><div class="stack" id="mbody"></div></div></div>
 <div class="modal" id="cardov" hidden><div class="bbcard" role="dialog" aria-modal="true" aria-label="Baseball card"><button class="x" id="cardclose" aria-label="Close card">×</button><div id="cardbody"></div></div></div>
@@ -727,6 +732,8 @@ function bump(h,k){if(h.kind==="range")return;const was=h.strokes;h.n=(h.n??h.st
   if(k>0&&was<MAXS&&h.strokes===MAXS&&!h.done)toast("Stroke limit. Your score stays at 10, so finish if you want to")}
 function jump(p,t){const h=S.hole;if(h.done)return;
   h.trail.push({p,t});bump(h,1);S.open=-1;S.filter="";S.tq="";h.hintTeam=-1;
+  // Plays (analytics thread, 2026-10-21): a hole counts as played on its first move, so page loads that open the Daily don't count.
+  if(h.trail.length===2&&h.kind!=="tutor"&&!h.pinged){h.pinged=1;ping("plays-"+etDate());if(h.kind==="daily"&&!h.meta.late&&!store.get("started-"+h.meta.n)){store.set("started-"+h.meta.n,1);ping("daily-"+h.meta.n+"-started")}}
   if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"});if(p===h.b&&h.kind==="daily")openSharePop();if(p===h.b&&roundJustDone(h))openRoundPop(h.meta.date)}
 function back(){const h=S.hole;if(h.done||h.trail.length<2)return;const prev=h.trail[h.trail.length-2];
   h.trail.push({p:prev.p,t:-2});bump(h,1);S.open=-1;h.hintTeam=-1;save();render()}
