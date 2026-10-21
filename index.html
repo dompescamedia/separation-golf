@@ -138,7 +138,9 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .trail .t b{font-weight:600}
 .trail .via{font-size:12.5px;color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
-.xshare{display:flex;flex-direction:column;gap:6px;margin-top:10px}.xbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700}
+.xshare{display:flex;flex-direction:column;gap:6px;margin-top:10px}.btn.xbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--body);font-weight:700;text-transform:none;letter-spacing:0;font-size:16px;min-height:46px;flex:1 1 140px}
+.spimg{display:flex;justify-content:center;align-items:center;min-height:200px}.spimg img{width:100%;max-height:56vh;object-fit:contain;border-radius:8px}
+.xshare.pop{margin-top:0}
 .btn,.diff button{border:2px solid var(--ink);background:var(--card);border-radius:4px;padding:8px 12px;font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:12.5px}
 .rival{margin-top:10px;padding:8px 10px;border-left:4px solid var(--red);background:var(--bg);font-size:14px}
 .rival .rv{font-family:var(--mono);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.06em;color:var(--red);margin-right:8px}
@@ -725,7 +727,7 @@ function bump(h,k){if(h.kind==="range")return;const was=h.strokes;h.n=(h.n??h.st
   if(k>0&&was<MAXS&&h.strokes===MAXS&&!h.done)toast("Stroke limit. Your score stays at 10, so finish if you want to")}
 function jump(p,t){const h=S.hole;if(h.done)return;
   h.trail.push({p,t});bump(h,1);S.open=-1;S.filter="";S.tq="";h.hintTeam=-1;
-  if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"})}
+  if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"});if(p===h.b&&h.kind==="daily")openSharePop()}
 function back(){const h=S.hole;if(h.done||h.trail.length<2)return;const prev=h.trail[h.trail.length-2];
   h.trail.push({p:prev.p,t:-2});bump(h,1);S.open=-1;h.hintTeam=-1;save();render()}
 function hint(){const h=S.hole;if(h.done)return;const u=cur();const du=h.distT[u];
@@ -736,7 +738,7 @@ const mullLeft=()=>{const h=S.hole;return h.kind==="round"?!roundMull(h.meta.dat
 function mulligan(){const h=S.hole;if(h.kind==="daily"||h.done||h.trail.length<2||!mullLeft())return;
   h.trail.pop();bump(h,-1);h.mullUsed=true;if(h.kind==="round")store.set("mull:"+h.meta.date,{i:h.meta.idx});
   S.open=-1;h.hintTeam=-1;save();render();toast("Mulligan taken. That move never happened")}
-function giveUp(){finish(true);save();render()}
+function giveUp(){finish(true);save();render();if(S.hole.kind==="daily")openSharePop()}
 // One-time wipe of games saved before launch night, so every phone starts at Daily #1.
 function launchReset(){if(store.get("launch1"))return;
   try{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^(daily|round|mull):/.test(k))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k))}catch(e){}
@@ -896,14 +898,14 @@ function resultHTML(){
     ${rivalHTML()}${h.kind==="daily"&&!h.meta.late||h.kind==="round"&&h.meta.idx===8?nextInHTML():""}<div class="eyebrow">${h.gaveUp?"Here's how it could go":"Holed out"}${h.hard?" · Hard mode":""}</div>
     <div class="term ${!h.gaveUp&&rel>0?"over":""}">${esc(t)}</div>
     <div class="small muted">${h.gaveUp?`Shortest route was ${h.best} jump${h.best>1?"s":""}.`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}${h.hints?`, ${h.hints} hint${h.hints>1?"s":""}`:""}. Perfect route: ${h.best}.`}</div>
-    ${h.kind==="daily"?dailyExtrasHTML():""}${routeCountsHTML(h)}
+    ${xShareHTML(h)}${h.kind==="daily"?dailyExtrasHTML():""}${routeCountsHTML(h)}
     <div class="paths">
       ${h.gaveUp?"":`<div><div class="eyebrow">Your route</div>${pathList(h.trail)}</div>`}
       ${h.rival?`<div><div class="eyebrow">Friend's route · ${h.rival.strokes}</div>${pathList(rivalSteps(h.rival,h.a,h.allow))}</div>`:""}
       ${twoRoutes(h,best,pathList)}
     </div>
     <div class="sharebox" id="sharebox">${esc(shareText())}</div>
-    ${pick}${xShareHTML(h)}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
+    ${pick}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
   </section>`;
 }
 // How many routes score an eagle, birdie or par (Dom, 2026-10-21). A route is a chain of teammates with no player twice.
@@ -960,6 +962,7 @@ function rivalHTML(){const h=S.hole,r=h.rival;if(!r)return"";
   const d=r.strokes-h.strokes;return`<div class="rival"><span class="rv">Rival</span>${d>0?`You beat your friend by <b>${d}</b>.`:d<0?`Your friend wins by <b>${-d}</b>.`:"All square. You tied your friend."}</div>`}
 // Post to X (Dom, 2026-10-21), Immaculate Grid style: score, your route, its WAR, Deep Cut rank (top 500 only) and a link to play.
 // On a live Daily or Daily 9 the players in between show as initials so the post doesn't give the answer away (switch remembered).
+const routeWar=ids=>ids.reduce((t,p)=>t+(P[p][10]||0),0)/10; // every player on the route, tee and pin included (Dom: "total WAR")
 const xLive=h=>(h.kind==="daily"||h.kind==="round")&&!h.meta.late;
 const xHide=h=>h.xh!==undefined?h.xh:xLive(h)&&store.get("xspoil")!==false;
 const initials=p=>P[p][0].split(/\s+/).filter(w=>/^[A-Za-zÀ-ÿ]/.test(w)).map(w=>w[0].toUpperCase()+".").join("");
@@ -968,15 +971,17 @@ function xText(h){const rel=h.strokes-h.par,ids=h.trail.map(st=>st.p),hide=xHide
   const nm=(p,i,last)=>hide&&i>0&&i<ids.length-1?initials(p):last?P[p][0].split(" ").slice(-1)[0]:P[p][0];
   let route=h.gaveUp?`${P[h.a][0]} → ${P[h.b][0]}`:ids.map((p,i)=>nm(p,i,false)).join(" → ");
   if(route.length>150)route=ids.map((p,i)=>nm(p,i,true)).join(" → ");
-  const war=h.gaveUp?0:ids.slice(1,-1).reduce((t,p)=>t+(P[p][10]||0),0)/10;
+  const war=h.gaveUp?0:routeWar(ids);
   const rk=h.kind==="daily"&&!h.gaveUp&&h.rk&&!h.rk.over?` · Deep Cut ${rankTxt(h.rk)}`:"";
   const st=h.kind==="daily"&&!h.meta.late?dailyStreak().streak:0;
-  return [head,route,h.gaveUp?"":`${war.toFixed(1)} WAR in between${rk}`,st>1?`🔥 ${st}-day streak`:"",`Play: ${BASE_URL.replace(/\/$/,"")} @SeparationGolf`].filter(Boolean).join("\n")}
+  return [head,route,h.gaveUp?"":`${war.toFixed(1)} total WAR${rk}`,st>1?`🔥 ${st}-day streak`:"",`Play: ${BASE_URL.replace(/\/$/,"")} @SeparationGolf`].filter(Boolean).join("\n")}
 const X_ICO=`<svg viewBox="0 0 24 24" aria-hidden="true" width="15" height="15" fill="currentColor"><path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.3L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg>`;
-function xShareHTML(h){return`<div class="xshare">${!h.gaveUp?`<label class="chk small"><input type="checkbox" id="xspoil" ${xHide(h)?"checked":""}> Hide the players in between (no spoilers)</label>`:""}<div class="actions"><button class="btn xbtn" id="xpost">${X_ICO} Post to X</button><button class="btn" id="ximg">Share image</button></div></div>`}
+function xShareHTML(h,pop){return`<div class="xshare${pop?" pop":""}">${!h.gaveUp?`<label class="chk small"><input type="checkbox" id="${pop?"sp":"x"}spoil" ${xHide(h)?"checked":""}> Hide the players in between (no spoilers)</label>`:""}<div class="actions"><button class="btn xbtn" id="${pop?"sp":"x"}post">${X_ICO} Post to X</button><button class="btn xbtn" id="${pop?"sp":"x"}img2">Share image</button>${pop?`<button class="btn xbtn" id="spcopy">Copy text</button>`:""}</div></div>`}
 // Share image (Dom, 2026-10-21): a 1080x1350 scorecard of your route in the current colors. With "Hide the players in between"
 // on, the middle players and their teams are blacked out. Phones get the share sheet (the image plus the post text);
 // elsewhere the image is copied to the clipboard, or downloaded if that's not allowed.
+const loadFace=p=>new Promise(res=>{const u=HS(p);if(!u)return res(null);const im=new Image();im.crossOrigin="anonymous";const t=setTimeout(()=>res(null),5000);
+  im.onload=()=>{clearTimeout(t);res(im)};im.onerror=()=>{clearTimeout(t);res(null)};im.src=u});
 async function routeImage(h){const W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");if(!g.roundRect)g.roundRect=function(x,y,w,h){this.rect(x,y,w,h)};
   const cs=getComputedStyle(document.documentElement),v=(k,d)=>cs.getPropertyValue(k).trim()||d;
   const bg=v("--bg","#ede1c6"),card=v("--card","#f8f0dc"),ink=v("--ink","#1d2a44"),muted=v("--muted","#6d6450"),red=v("--red","#b0302a"),line=v("--line","#c9b68e");
@@ -986,10 +991,17 @@ async function routeImage(h){const W=1080,H=1350,cv=document.createElement("canv
   g.textAlign="center";g.fillStyle=ink;g.font=`96px ${SC}`;g.fillText("Separation Golf",W/2,170);
   const sub=h.kind==="daily"?`DAILY #${h.meta.n} · ${fmtDate(h.meta.date).toUpperCase()}`:h.kind==="round"?`DAILY 9 #${h.meta.n} · HOLE ${h.meta.idx+1}`:h.kind==="endless"?"ENDLESS":"CUSTOM";
   g.font=`700 30px ${MO}`;g.fillStyle=muted;g.fillText(sub+(h.hard?" · HARD MODE":""),W/2,225);
-  const rel=h.strokes-h.par;g.fillStyle=red;g.font=`150px ${SC}`;g.fillText(h.gaveUp?"Picked up":term(rel,h.strokes),W/2,385);
-  g.fillStyle=ink;g.font=`400 38px ${BO}`;g.fillText(h.gaveUp?`Par ${h.par}`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}`,W/2,478);
-  g.strokeStyle=line;g.lineWidth=3;g.beginPath();g.moveTo(110,515);g.lineTo(W-110,515);g.stroke();
-  const steps=h.gaveUp?[{p:h.a,t:-1},{p:h.b,t:-1}]:h.trail,n=steps.length,hide=xHide(h),top=550,room=H-300-top,lh=Math.min(112,room/n),big=Math.min(46,lh*.48),small=Math.min(28,lh*.3);
+  // Tee and pin faces either side of the score word (FACES photos first, then MLB headshots; skipped if one won't load).
+  const [fa,fb]=await Promise.all([h.a,h.b].map(loadFace)),fw=150,fh=225,fy=250;
+  [[fa,h.a,70],[fb,h.b,W-70-fw]].forEach(([im,p,x])=>{g.fillStyle=bg;g.strokeStyle=ink;g.lineWidth=5;g.beginPath();g.roundRect(x,fy,fw,fh,10);g.fill();g.stroke();
+    if(im){g.save();g.beginPath();g.roundRect(x+5,fy+5,fw-10,fh-10,6);g.clip();const r=Math.max((fw-10)/im.width,(fh-10)/im.height);g.drawImage(im,x+5+((fw-10)-im.width*r)/2,fy+5,im.width*r,im.height*r);g.restore()}
+    else{g.fillStyle=line;g.beginPath();g.arc(x+fw/2,fy+fh*.38,fw*.22,0,7);g.fill();g.beginPath();g.ellipse(x+fw/2,fy+fh*.86,fw*.36,fh*.2,0,Math.PI,0);g.fill()}
+    g.fillStyle=muted;g.font=`700 22px ${MO}`;g.textAlign="center";g.fillText(p===h.a?"TEE":"PIN",x+fw/2,fy+fh+30)});
+  const rel=h.strokes-h.par,word=h.gaveUp?"Picked up":term(rel,h.strokes);let fs=150;g.font=`${fs}px ${SC}`;while(g.measureText(word).width>W-2*(70+fw+20)&&fs>70){fs-=6;g.font=`${fs}px ${SC}`}
+  g.fillStyle=red;g.fillText(word,W/2,385);
+  g.fillStyle=ink;g.font=`400 34px ${BO}`;g.fillText(h.gaveUp?`Par ${h.par}`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}`,W/2,478);
+  g.strokeStyle=line;g.lineWidth=3;g.beginPath();g.moveTo(110,535);g.lineTo(W-110,535);g.stroke();
+  const steps=h.gaveUp?[{p:h.a,t:-1},{p:h.b,t:-1}]:h.trail,n=steps.length,hide=xHide(h),top=570,room=H-300-top,lh=Math.min(112,room/n),big=Math.min(46,lh*.48),small=Math.min(28,lh*.3);
   g.textAlign="left";
   steps.forEach((st,i)=>{const y=top+i*lh+big,mid=i>0&&i<n-1,x=150;
     g.fillStyle=muted;g.font=`700 ${small+4}px ${MO}`;g.textAlign="right";g.fillText(String(i+1),x-24,y);g.textAlign="left";
@@ -998,10 +1010,16 @@ async function routeImage(h){const W=1080,H=1350,cv=document.createElement("canv
       if(tm&&lh>70){g.font=`400 ${small}px ${BO}`;g.globalAlpha=.35;g.beginPath();g.roundRect(x,y+small*.45,Math.max(120,g.measureText(tm).width),small*.95,3);g.fill();g.globalAlpha=1}}
     else{g.fillStyle=ink;g.font=`700 ${big}px ${BO}`;g.fillText(name,x,y);if(tm&&lh>70){g.fillStyle=muted;g.font=`400 ${small}px ${BO}`;g.fillText(tm,x,y+small*1.3)}}});
   g.textAlign="center";g.strokeStyle=line;g.beginPath();g.moveTo(110,H-250);g.lineTo(W-110,H-250);g.stroke();
-  if(!h.gaveUp){const war=steps.slice(1,-1).reduce((t,st)=>t+(P[st.p][10]||0),0)/10,rk=h.kind==="daily"&&h.rk&&!h.rk.over?`  ·  Deep Cut ${rankTxt(h.rk)}`:"";
-    g.fillStyle=ink;g.font=`700 40px ${BO}`;g.fillText(`${war.toFixed(1)} WAR in between${rk}`,W/2,H-180)}
+  if(!h.gaveUp){const stats=[["TOTAL WAR",routeWar(steps.map(st=>st.p)).toFixed(1)]];if(h.kind==="daily"&&h.rk&&!h.rk.over)stats.unshift(["DEEP CUT RANK",rankTxt(h.rk)]);
+    stats.forEach(([l,v],i)=>{const cx=stats.length===1?W/2:W/2+(i?1:-1)*230;g.fillStyle=ink;g.font=`700 58px ${BO}`;g.fillText(v,cx,H-165);g.fillStyle=muted;g.font=`700 22px ${MO}`;g.fillText(l,cx,H-238)})}
   g.fillStyle=red;g.font=`700 34px ${MO}`;g.fillText("SEPARATIONGOLF.COM",W/2,H-110);
   return new Promise(r=>cv.toBlob(r,"image/png"))}
+// Daily finish pop-up (Dom, 2026-10-21), like Immaculate Grid: the share image first, with the share buttons; close it for the full result.
+let SP_URL="";
+async function sharePopImg(){const h=S.hole,box=$("#spimg");if(!box)return;const blob=await routeImage(h);if(!blob||!$("#spimg"))return;if(SP_URL)URL.revokeObjectURL(SP_URL);SP_URL=URL.createObjectURL(blob);box.innerHTML=`<img src="${SP_URL}" alt="Your route as a share card">`}
+function openSharePop(){const h=S.hole;openModal(`<h2 class="mtitle" id="mtitle">${h.gaveUp?"Here's your card":"Holed out"}</h2><div class="spimg" id="spimg"><span class="small muted">Making your card…</span></div>${xShareHTML(h,true)}<button class="btn" id="spmore">See the full result</button>`);
+  sharePopImg();const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};on("spimg2",shareImage);on("sppost",()=>window.open("https://x.com/intent/post?text="+encodeURIComponent(xText(S.hole)),"_blank","noopener"));on("spcopy",()=>copy(shareText()));on("spmore",closeModal);
+  const xs=$("#spspoil");if(xs)xs.onchange=()=>{S.hole.xh=xs.checked;if(xLive(S.hole))store.set("xspoil",xs.checked);sharePopImg();render()}}
 async function shareImage(){const h=S.hole,blob=await routeImage(h);if(!blob)return toast("Couldn't make the image");
   const file=new File([blob],`separation-golf${h.kind==="daily"?"-daily-"+h.meta.n:""}.png`,{type:"image/png"});
   if(navigator.canShare&&navigator.canShare({files:[file]})&&matchMedia("(pointer:coarse)").matches){try{await navigator.share({files:[file],text:xText(h)})}catch(e){}return}
@@ -1286,7 +1304,7 @@ function bind(){bindCards();fillCrowd();
   on("hint",hint);on("back",back);on("mull",mulligan);on("giveup",giveUp);
   document.querySelectorAll("[data-peek]").forEach(b=>b.onclick=()=>{S.peek[b.dataset.peek]=!S.peek[b.dataset.peek];render()});
   on("share",()=>copy(S.hole.kind==="run"?runShare():shareText()));
-  on("ximg",shareImage);
+  on("ximg2",shareImage);
   on("xpost",()=>window.open("https://x.com/intent/post?text="+encodeURIComponent(xText(S.hole)),"_blank","noopener"));
   const xs=$("#xspoil");if(xs)xs.onchange=()=>{S.hole.xh=xs.checked;if(xLive(S.hole))store.set("xspoil",xs.checked)};
   on("roundshare",()=>{const res=roundState(),t=roundTotals(res);copy(roundShare(res,t.st,t.par),"roundbox")});
