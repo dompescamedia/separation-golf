@@ -735,36 +735,45 @@ function bump(h,k){if(h.kind==="range")return;const was=h.strokes;h.n=(h.n??h.st
 function jump(p,t){const h=S.hole;if(h.done)return;
   h.trail.push({p,t});bump(h,1);S.open=-1;S.filter="";S.tq="";h.hintTeam=-1;
   // Plays (analytics thread, 2026-10-21): a hole counts as played on its first move, so page loads that open the Daily don't count.
-  if(h.trail.length===2&&h.kind!=="tutor"&&!h.pinged){h.pinged=1;ping("plays-"+etDate());if(h.kind==="daily"&&!h.meta.late&&!store.get("started-"+h.meta.n)){store.set("started-"+h.meta.n,1);ping("daily-"+h.meta.n+"-started")}}
-  if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"});if(p===h.b&&h.kind==="daily")openSharePop();if(p===h.b&&roundJustDone(h))openRoundPop(h.meta.date)}
-function back(){const h=S.hole;if(h.done||h.trail.length<2)return;const prev=h.trail[h.trail.length-2];
+  if(h.trail.length===2&&h.kind!=="tutor"&&!h.pinged){h.pinged=1;ping("plays-"+etDate());firstMove(h);if(h.kind==="daily"&&!h.meta.late&&!store.get("started-"+h.meta.n)){store.set("started-"+h.meta.n,1);ping("daily-"+h.meta.n+"-started")}}
+  if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"});if(p===h.b&&h.kind==="daily")openSharePop();if(p===h.b&&roundJustDone(h)){d9Done(h.meta.date);openRoundPop(h.meta.date)}}
+function back(){const h=S.hole;if(h.done||h.trail.length<2)return;if(h.kind==="daily"&&!h.meta.late)pingOnce("daily-"+h.meta.n+"-back");const prev=h.trail[h.trail.length-2];
   h.trail.push({p:prev.p,t:-2});bump(h,1);S.open=-1;h.hintTeam=-1;save();render()}
 function hint(){const h=S.hole;if(h.done)return;const u=cur();const du=h.distT[u];
-  for(const ti of teamsOf(u))for(const v of T[ti][2])if(h.distT[v]===du-1){h.hintTeam=ti;h.hints++;bump(h,1);S.open=ti;save();render();return}}
+  for(const ti of teamsOf(u))for(const v of T[ti][2])if(h.distT[v]===du-1){if(h.kind==="daily"&&!h.meta.late)pingOnce("daily-"+h.meta.n+"-hint");h.hintTeam=ti;h.hints++;bump(h,1);S.open=ti;save();render();return}}
 // Mulligan: take back the last move for free. One per hole, or one for the whole Daily 9.
 const roundMull=d=>store.get("mull:"+d);
 const mullLeft=()=>{const h=S.hole;return h.kind==="round"?!roundMull(h.meta.date):!h.mullUsed};
 function mulligan(){const h=S.hole;if(h.kind==="daily"||h.done||h.trail.length<2||!mullLeft())return;
   h.trail.pop();bump(h,-1);h.mullUsed=true;if(h.kind==="round")store.set("mull:"+h.meta.date,{i:h.meta.idx});
   S.open=-1;h.hintTeam=-1;save();render();toast("Mulligan taken. That move never happened")}
-function giveUp(){finish(true);save();render();if(S.hole.kind==="daily")openSharePop();if(roundJustDone(S.hole))openRoundPop(S.hole.meta.date)}
+function giveUp(){finish(true);save();render();if(S.hole.kind==="daily")openSharePop();if(roundJustDone(S.hole)){d9Done(S.hole.meta.date);openRoundPop(S.hole.meta.date)}}
 // One-time wipe of games saved before launch night, so every phone starts at Daily #1.
 function launchReset(){if(store.get("launch1"))return;
   try{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^(daily|round|mull):/.test(k))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k))}catch(e){}
   store.set("launch1",1)}
 // Anonymous play counts (no account, no personal data): abacus.jasoncameron.dev/get/dompesca-sepgolf/<key>
 const AB="https://abacus.jasoncameron.dev/";
+// Admin-page counters (analytics thread, 2026-10-21). pingOnce fires a key once per device; modeOf names the hole's mode.
+function pingOnce(k){if(store.get("pg:"+k))return;store.set("pg:"+k,1);ping(k)}
+const modeOf=h=>h.kind==="daily"?(h.meta.late?"archive":"daily"):h.kind==="round"?"d9":h.kind==="custom"&&h.meta.ch?"challenge":h.kind;
+function firstMove(h){const d=etDate();ping("mode-"+modeOf(h)+"-"+d);
+  if(h.kind==="round"&&h.meta.idx===0&&h.meta.date===d)pingOnce("d9-"+d+"-started");
+  if(h.kind==="daily"&&!h.meta.late&&!store.get("t0-"+h.meta.n))store.set("t0-"+h.meta.n,Date.now());
+  if(h.meta.ch)ping("chal-played-"+d)}
 function ping(k){try{return fetch(AB+"hit/dompesca-sepgolf/"+k,{mode:"no-cors",keepalive:true}).catch(()=>{})}catch(e){return Promise.resolve()}}
 // Read one counter; a key nobody has hit yet is 0. Any other failure rejects so the crowd box stays hidden.
 const abGet=k=>fetch(AB+"get/dompesca-sepgolf/"+k).then(r=>r.ok?r.json().then(j=>j.value||0):r.status===404?0:Promise.reject(r.status));
 const akey=p=>P[p][3].replace(/[^A-Za-z0-9_.-]/g,"_");
 // Score buckets for the Daily crowd counters: 0 eagle, 1 birdie, 2 par, 3 bogey, 4 double, 5 triple or worse.
 const rBucket=h=>Math.max(0,Math.min(5,h.strokes-h.par+2));
-function countVisit(){const d=etDate();if(!store.get("player"))store.set("player",1),ping("players");if(store.get("seen")!==d)store.set("seen",d),ping("visitors-"+d)}
+function countVisit(){const d=etDate();if(!store.get("player"))store.set("player",1),ping("players"),ping("new-"+d);
+  if(store.get("seen")!==d){const y=new Date(Date.parse(d+"T12:00:00Z")-864e5).toISOString().slice(0,10);if(store.get("seen")===y)ping("back-"+d);store.set("seen",d);ping("visitors-"+d)}}
 function finish(gave){const h=S.hole;h.done=true;
   if(h.kind==="daily"&&!gave)h.rk=routeRank(h)||undefined;
   // On-the-day Daily finishes feed the crowd counts: total holed, score bucket, and each player used in between.
   if(h.kind==="daily"&&!h.meta.late){const n="daily-"+h.meta.n;
+    const t0=store.get("t0-"+h.meta.n),tb=m=>m<1?0:m<2?1:m<3?2:m<5?3:m<10?4:5;if(!gave&&t0)pingOnce(n+"-t"+tb((Date.now()-t0)/6e4));
     h.pinged=Promise.all(gave?[ping(n+"-gaveup")]:[ping(n+"-holed"),ping(n+"-r"+rBucket(h)),...h.trail.slice(1,-1).map(st=>ping(n+"-p"+akey(st.p)))])}if(h.clock)h.clock.end=Date.now();h.gaveUp=gave;if(h.kind==="endless"){S.tally.holes++;S.tally.over+=gave?2:(h.strokes-h.par)}}
 
 function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Albatross","-2":"Eagle","-1":"Birdie","0":"Par","1":"Bogey","2":"Double bogey","3":"Triple bogey"})[rel]||"+"+rel}
@@ -1074,6 +1083,8 @@ function openRoundPop(d){openModal(`<h2 class="mtitle" id="mtitle">Round complet
   roundImage(d).then(b=>{const box=$("#spimg");if(!b||!box)return;if(SP_URL)URL.revokeObjectURL(SP_URL);SP_URL=URL.createObjectURL(b);box.innerHTML=`<img src="${SP_URL}" alt="Your Daily 9 scorecard">`});
   const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};on("rppost",()=>xOpen(roundXText(d)));on("rpcopy",()=>copy(roundXText(d)));
   on("rpimg",async()=>shareBlob(await roundImage(d),`separation-golf-daily9-${dayNum(d)}.png`,roundXText(d)));on("spmore",()=>{closeModal();window.scrollTo({top:0,behavior:"smooth"})})}
+// Daily 9 finished on the day: count it, and bucket the score to par from -5 (s0) to +10 (s15).
+function d9Done(d){if(d!==etDate()||store.get("pg:d9-"+d+"-done"))return;const t=roundTotals(roundState());pingOnce("d9-"+d+"-done");pingOnce("d9-"+d+"-s"+(Math.max(-5,Math.min(10,t.st-t.par))+5))}
 const roundJustDone=h=>h.kind==="round"&&roundTotals(roundState()).done===9;
 // Daily finish pop-up (Dom, 2026-10-21), like Immaculate Grid: the share image first, with the share buttons; close it for the full result.
 let SP_URL="";
@@ -1158,7 +1169,7 @@ function startRun(){const c=S.custom.run,ys=runYears(c.fr);let k=Math.max(0,ys.f
 const runAt=h=>h.trail[h.trail.length-1].i;
 function runPick(p){const h=S.hole;if(h.done)return;const i=runAt(h),j=runEnd(h,i,p);
   if(j===i){toast(`${P[p][0]} wasn't on the ${h.years[i]+1} roster. Pick someone who came back.`);return}
-  h.trail.push({i:j,p});h.strokes++;h.hintP=-1;S.filter="";if(j===h.rost.length-1){h.done=true}render();window.scrollTo({top:0,behavior:"smooth"})}
+  if(h.trail.length===1&&!h.pinged){h.pinged=1;firstMove(h)}h.trail.push({i:j,p});h.strokes++;h.hintP=-1;S.filter="";if(j===h.rost.length-1){h.done=true}render();window.scrollTo({top:0,behavior:"smooth"})}
 function runBack(){const h=S.hole;if(h.done||h.trail.length<2)return;h.trail.pop();h.strokes++;h.hintP=-1;render()}
 function runHint(){const h=S.hole;if(h.done)return;const i=runAt(h),want=h.d[i]-1;let best=-1,bw=-1e9;
   for(const p of h.rost[i]){const j=runEnd(h,i,p);if(j>i&&h.d[j]===want&&(P[p][10]||0)>bw){bw=P[p][10]||0;best=p}}
@@ -1360,13 +1371,13 @@ function bind(){bindCards();fillCrowd();
   const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};
   on("hint",hint);on("back",back);on("mull",mulligan);on("giveup",giveUp);
   document.querySelectorAll("[data-peek]").forEach(b=>b.onclick=()=>{S.peek[b.dataset.peek]=!S.peek[b.dataset.peek];render()});
-  on("share",()=>copy(S.hole.kind==="run"?runShare():shareText()));
+  on("share",()=>{const k=S.hole.kind;if(k!=="run"&&k!=="daily"&&k!=="round")ping("chal-made-"+etDate());copy(k==="run"?runShare():shareText())});
   on("ximg2",shareImage);
   on("xpost",()=>xOpen(xText(S.hole)));
   const xs=$("#xspoil");if(xs)xs.onchange=()=>{S.hole.xh=xs.checked;if(xLive(S.hole))store.set("xspoil",xs.checked)};
   on("roundpop",()=>openRoundPop(S.rd.date));
   on("roundshare",()=>{const res=roundState(),t=roundTotals(res);copy(roundShare(res,t.st,t.par),"roundbox")});
-  on("chal",()=>copy(challengeMsg()));
+  on("chal",()=>{ping("chal-made-"+etDate());copy(challengeMsg())});
   on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
   on("toround",()=>setMode("round"));
   on("tutdaily",()=>setMode("daily"));on("tutrange",()=>setMode("range"));
@@ -1415,7 +1426,7 @@ function fromHash(){const m=location.hash.match(/^#ch\.([a-z0-9]+)\.([a-z0-9]+)(
     if(y){C=C||{from:MINY,to:MAXY,strict:true};C.from=+y[1];C.to=+y[2]}
     if(t){C=C||{from:MINY,to:MAXY,strict:true};C.fr=t[1].split("-").map(Number).filter(n=>n<FR.length)}}
   S.mode="custom";S.custom.a=a;S.custom.b=b;if(C&&C.fr){S.custom.tmode=C.fr.length===1?"one":"multi";S.custom.fr=[...C.fr]}
-  newHole(a,b,"custom",{},C,null,"keep");S.hole.rival=rival;render();return true}
+  newHole(a,b,"custom",{ch:1},C,null,"keep");S.hole.rival=rival;render();return true}
 
 try{if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
 fetch("data.json").then(r=>r.json()).then(d=>{
