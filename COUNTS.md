@@ -1,8 +1,8 @@
 # Play counts
 
-Updated Oct 20, 2026 1:38 AM Eastern.
+Updated Oct 21, 2026 1:37 AM Eastern.
 
-- Devices that have ever opened the game: 86
+- Devices that have ever opened the game: 111
 
 | Day | Visitors | Holed the Daily |
 |---|---|---|
@@ -11,4 +11,5 @@ Updated Oct 20, 2026 1:38 AM Eastern.
 | 2026-10-17 (Daily #3) | 8 | 3 |
 | 2026-10-18 (Daily #4) | 20 | 6 |
 | 2026-10-19 (Daily #5) | 49 | 7 |
-| 2026-10-20 (Daily #6) | 2 | 0 |
+| 2026-10-20 (Daily #6) | 27 | 4 |
+| 2026-10-21 (Daily #7) | 2 | 1 |
