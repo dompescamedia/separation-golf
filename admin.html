@@ -49,6 +49,16 @@ input{font:16px Bitter,serif;height:36px;padding:0 8px;border:2px solid var(--in
 code{font:13px "Courier Prime",monospace;background:var(--line);padding:2px 5px;border-radius:3px;user-select:all}
 .d9{font-size:13px;color:var(--muted);white-space:normal}
 .linkbtn{background:none;border:0;padding:0;height:auto;color:var(--blue);text-decoration:underline;font:inherit;text-transform:none;letter-spacing:0}
+textarea{font:15px/1.4 Bitter,serif;width:100%;min-height:130px;padding:8px;border:2px solid var(--ink);border-radius:4px;background:var(--bg);color:var(--ink);resize:vertical}
+select{font:15px Bitter,serif;height:36px;padding:0 6px;border:2px solid var(--ink);border-radius:4px;background:var(--card);color:var(--ink);max-width:100%}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+button.primary{background:var(--ink);color:var(--card)}
+.warn{color:var(--red);font-size:13px;white-space:normal;min-width:170px}
+.sub{margin:14px 0 6px}
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:8px}
+.mini div{border:1px solid var(--line);border-radius:4px;padding:6px 8px}.mini b{display:block;font-size:20px}
+.tops li{margin:2px 0}
+.spark{display:flex;align-items:flex-end;gap:3px;height:70px;margin-top:8px}.spark i{flex:1;background:var(--blue);border-radius:2px 2px 0 0;min-height:1px}
 #err{color:var(--red)}
 </style>
 <main>
@@ -63,58 +73,101 @@ code{font:13px "Courier Prime",monospace;background:var(--line);padding:2px 5px;
   <div class="key eyebrow"><span><i style="background:var(--blue)"></i>Visitors</span><span><i style="background:var(--green)"></i>Holed the Daily</span></div>
 </div>
 <div class="card"><table id="tbl"></table></div>
-<div class="card" id="sched">
-  <div class="eyebrow">Upcoming holes (spoilers)</div>
+<div class="card">
+  <div class="eyebrow">Players ever, running total</div>
+  <div class="spark" id="spark"></div><p class="note" id="sparkNote"></p>
+</div>
+<div class="card">
+  <div class="lock"><span class="eyebrow">Day details</span><select id="detDay"></select></div>
+  <div id="det"></div>
+</div>
+<div class="card" id="sched" style="overflow:visible">
+  <div class="eyebrow">Upcoming holes, X post, most-picked players (spoilers)</div>
   <div class="lock" id="lock" style="margin-top:8px"><input id="pass" type="password" placeholder="Passcode" autocomplete="current-password"><button id="unlock">Show</button></div>
   <div id="schedBody" hidden></div>
 </div>
-<p class="note">Live from the anonymous counters on the site (no accounts, no personal data). A visitor is one device per Eastern day. Holed and gave up only count the Daily on its own day. Score mix runs eagle to triple bogey or worse. Columns show a dash before that counter existed.</p>
+<p class="note">Live from the anonymous counters on the site (no accounts, no personal data). A visitor is one device per Eastern day. Daily numbers only count the Daily on its own day. Score mix runs eagle to triple bogey or worse. A dash means that counter didn't exist yet that day.</p>
 <p class="note" id="err"></p>
 </main>
 <script>
-const AB="https://abacus.jasoncameron.dev/get/dompesca-sepgolf/",START="2026-10-15";
+const AB="https://abacus.jasoncameron.dev/get/dompesca-sepgolf/",START="2026-10-15",WINDOW=30;
 const MIX=[["Eagle","#2f7a4a"],["Birdie","#6aa84f"],["Par","#24508f"],["Bogey","#d9a441"],["Double","#e07b39"],["Triple+","#b3262d"]];
+const MODES=[["daily","Daily"],["d9","Daily 9"],["endless","Endless"],["custom","Custom"],["range","Range"],["run","Team history run"],["archive","Archive"],["challenge","Challenge"]];
+const TIMES=["Under 1 min","1–2 min","2–3 min","3–5 min","5–10 min","10+ min"];
+const $=id=>document.getElementById(id);
 // A key nobody has hit yet is a 404, which means 0. Other failures come back as null.
 const get=k=>fetch(AB+k).then(r=>r.ok?r.json().then(j=>j.value||0):r.status===404?0:null).catch(()=>null);
 const etDate=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York"}).format(new Date());
 const addDay=(d,n)=>{const t=new Date(d+"T12:00:00Z");t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
+const dnum=d=>Math.round((new Date(d)-new Date(START))/864e5)+1;
 const fmt=n=>n==null?'<span class="na">?</span>':n.toLocaleString();
 const dash=n=>n?fmt(n):'<span class="na">–</span>';
 const pct=(a,b)=>b?Math.round(100*a/b)+"%":'<span class="na">–</span>';
 const short=d=>new Date(d+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sgn=x=>(x>0?"+":x<0?"−":"")+Math.abs(x).toFixed(1);
 // Run fetches a few at a time so a long history doesn't fire hundreds at once.
-async function pool(jobs,size=8){const out=new Array(jobs.length);let i=0;
+async function pool(jobs,size=6){const out=new Array(jobs.length);let i=0;
   await Promise.all(Array.from({length:size},async()=>{while(i<jobs.length){const j=i++;out[j]=await jobs[j]()}}));return out}
+async function getMany(keys){const v=await pool(keys.map(k=>()=>get(k)));return Object.fromEntries(keys.map((k,i)=>[k,v[i]]))}
+// Average strokes vs par from the score buckets (triple+ counts as +3).
+const avgPar=mix=>{const t=mix.reduce((a,b)=>a+b,0);return t?mix.reduce((s,c,i)=>s+c*(i-2),0)/t:null};
+
 async function load(){
-  document.getElementById("err").textContent="";document.getElementById("stamp").textContent="Loading…";
-  const today=etDate(),days=[];for(let d=START,n=1;d<=today;d=addDay(d,1),n++)days.push({d,n});
-  const recent=days.slice(-30).reverse();
+  $("err").textContent="";$("stamp").textContent="Loading…";
+  const today=etDate(),days=[];for(let d=START;d<=today;d=addDay(d,1))days.push({d,n:dnum(d)});
+  const recent=days.slice(-WINDOW).reverse();
   const keys=["players"];
-  for(const {d,n} of recent)keys.push("visitors-"+d,"plays-"+d,`daily-${n}-started`,`daily-${n}-holed`,`daily-${n}-gaveup`,...MIX.map((_,i)=>`daily-${n}-r${i}`));
-  const vals=await pool(keys.map(k=>()=>get(k))),V=Object.fromEntries(keys.map((k,i)=>[k,vals[i]]));
-  if(vals.every(v=>v==null)){document.getElementById("err").textContent="Couldn't reach the counter service. Try Refresh in a minute.";}
-  const rows=recent.map(({d,n})=>({d,n,vis:V["visitors-"+d],plays:V["plays-"+d],start:V[`daily-${n}-started`],holed:V[`daily-${n}-holed`],gave:V[`daily-${n}-gaveup`],mix:MIX.map((_,i)=>V[`daily-${n}-r${i}`]||0)}));
+  for(const {d,n} of recent)keys.push("visitors-"+d,"new-"+d,"back-"+d,"plays-"+d,`daily-${n}-started`,`daily-${n}-holed`,`daily-${n}-gaveup`,...MIX.map((_,i)=>`daily-${n}-r${i}`));
+  const V=await getMany(keys);
+  if(Object.values(V).every(v=>v==null))$("err").textContent="Couldn't reach the counter service. Try Refresh in a minute.";
+  const rows=recent.map(({d,n})=>({d,n,vis:V["visitors-"+d],nw:V["new-"+d],back:V["back-"+d],plays:V["plays-"+d],start:V[`daily-${n}-started`],holed:V[`daily-${n}-holed`],gave:V[`daily-${n}-gaveup`],mix:MIX.map((_,i)=>V[`daily-${n}-r${i}`]||0)}));
+  rows.forEach(r=>r.avg=avgPar(r.mix));
   const t=rows[0]||{},y=rows[1]||{};
-  document.getElementById("tiles").innerHTML=[
-    ["Devices ever",V.players],["Visitors today",t.vis],["Holed today",t.holed],["Visitors yesterday",y.vis],["Holed yesterday",y.holed],
-    ["Avg visitors / day",rows.length?Math.round(rows.reduce((s,r)=>s+(r.vis||0),0)/rows.length):0]
-  ].map(([l,v])=>`<div class="tile"><span class="eyebrow">${l}</span><b>${fmt(v)}</b></div>`).join("");
+  // Hardest and easiest finished Dailies with at least 3 scores, today excluded.
+  const rated=rows.slice(1).filter(r=>r.mix.reduce((a,b)=>a+b,0)>=3).sort((a,b)=>b.avg-a.avg);
+  const hl=r=>r?`<b>#${r.n} ${sgn(r.avg)}</b><span class="na">${short(r.d)}</span>`:'<b class="na">–</b>';
+  $("tiles").innerHTML=[
+    ["Devices ever",fmt(V.players)],["Visitors today",fmt(t.vis)],["Holed today",fmt(t.holed)],["Visitors yesterday",fmt(y.vis)],["Holed yesterday",fmt(y.holed)],
+    ["Avg visitors / day",fmt(rows.length?Math.round(rows.reduce((s,r)=>s+(r.vis||0),0)/rows.length):0)]
+  ].map(([l,v])=>`<div class="tile"><span class="eyebrow">${l}</span><b>${v}</b></div>`).join("")+
+    `<div class="tile"><span class="eyebrow">Hardest Daily</span>${hl(rated[0])}</div><div class="tile"><span class="eyebrow">Easiest Daily</span>${hl(rated.length>1?rated[rated.length-1]:null)}</div>`;
   const max=Math.max(1,...rows.map(r=>r.vis||0));
-  document.getElementById("chart").innerHTML=rows.slice().reverse().map(r=>`<div class="col" title="${r.d}: ${r.vis||0} visitors, ${r.holed||0} holed"><div class="bars"><i style="height:${100*(r.vis||0)/max}%"></i><i class="h" style="height:${100*(r.holed||0)/max}%"></i></div><span>${short(r.d).replace(/^\w+ /,"")}</span></div>`).join("");
-  document.getElementById("tbl").innerHTML=`<tr><th>Day</th><th>Visitors</th><th>Games played</th><th>Started Daily</th><th>Holed</th><th>Gave up</th><th>Holed / visitors</th><th>Score mix</th></tr>`+
+  $("chart").innerHTML=rows.slice().reverse().map(r=>`<div class="col" title="${r.d}: ${r.vis||0} visitors, ${r.holed||0} holed"><div class="bars"><i style="height:${100*(r.vis||0)/max}%"></i><i class="h" style="height:${100*(r.holed||0)/max}%"></i></div><span>${short(r.d).replace(/^\w+ /,"")}</span></div>`).join("");
+  $("tbl").innerHTML=`<tr><th>Day</th><th>Visitors</th><th>New</th><th>Came back</th><th>Games played</th><th>Started Daily</th><th>Holed</th><th>Gave up</th><th>Holed / started</th><th>Avg vs par</th><th>Score mix</th></tr>`+
     rows.map(r=>{const tot=r.mix.reduce((a,b)=>a+b,0);
-      return `<tr><td>${short(r.d)} · Daily #${r.n}</td><td>${fmt(r.vis)}</td><td>${dash(r.plays)}</td><td>${dash(r.start)}</td><td>${fmt(r.holed)}</td><td>${dash(r.gave)}</td><td>${pct(r.holed||0,r.vis)}</td>`+
+      return `<tr><td>${short(r.d)} · Daily #${r.n}</td><td>${fmt(r.vis)}</td><td>${dash(r.nw)}</td><td>${dash(r.back)}</td><td>${dash(r.plays)}</td><td>${dash(r.start)}</td><td>${fmt(r.holed)}</td><td>${dash(r.gave)}</td><td>${r.start?pct(r.holed||0,r.start):pct(r.holed||0,r.vis)}</td><td>${r.avg==null?'<span class="na">–</span>':sgn(r.avg)}</td>`+
       `<td>${tot?`<span class="mix" title="${MIX.map(([l],i)=>l+" "+r.mix[i]).join(", ")}">${r.mix.map((c,i)=>c?`<i style="width:${100*c/tot}%;background:${MIX[i][1]}"></i>`:"").join("")}</span>`:'<span class="na">–</span>'}</td></tr>`}).join("");
-  document.getElementById("stamp").textContent="Updated "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+  // Running total: today's total minus the new devices counted after each day. Only meaningful once new- counting began.
+  const asc=rows.slice().reverse(),first=asc.findIndex(r=>r.nw>0);
+  if(first<0||V.players==null){$("spark").innerHTML="";$("sparkNote").textContent="Starts once the new-player counter is live on the site.";}
+  else{let after=0;const tot=[];for(let i=asc.length-1;i>=first;i--){tot[i]=V.players-after;after+=asc[i].nw||0}
+    const sl=asc.slice(first),mx=Math.max(...tot.slice(first));
+    $("spark").innerHTML=sl.map((r,i)=>`<i title="${r.d}: ${tot[first+i]}" style="height:${100*tot[first+i]/mx}%"></i>`).join("");
+    $("sparkNote").textContent=`${tot[first]} on ${short(asc[first].d)} to ${V.players} now.`}
+  $("detDay").innerHTML=rows.map(r=>`<option value="${r.d}">${short(r.d)} · Daily #${r.n}</option>`).join("");details();
+  $("stamp").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
 }
-document.getElementById("go").onclick=load;load();
-// ---- Upcoming holes. The passcode is a curtain against casual spoilers, not real security: the picks are computable from index.html.
+// One day's deeper counters: modes, Daily 9, hints, solve time, challenges.
+async function details(){const d=$("detDay").value;if(!d)return;const n=dnum(d);$("det").innerHTML='<p class="note">Loading…</p>';
+  const ks=[...MODES.map(([m])=>`mode-${m}-${d}`),`d9-${d}-started`,`d9-${d}-done`,...[...Array(16)].map((_,k)=>`d9-${d}-s${k}`),`daily-${n}-hint`,`daily-${n}-back`,...TIMES.map((_,k)=>`daily-${n}-t${k}`),`chal-made-${d}`,`chal-played-${d}`,`daily-${n}-holed`];
+  const V=await getMany(ks);if($("detDay").value!==d)return;
+  const s9=[...Array(16)].map((_,k)=>V[`d9-${d}-s${k}`]||0),n9=s9.reduce((a,b)=>a+b,0),a9=n9?s9.reduce((s,c,k)=>s+c*(k-5),0)/n9:null;
+  const tm=TIMES.map((_,k)=>V[`daily-${n}-t${k}`]||0),nt=tm.reduce((a,b)=>a+b,0);
+  const med=nt?TIMES[tm.findIndex((c,k)=>tm.slice(0,k+1).reduce((a,b)=>a+b,0)>=nt/2)]:null;
+  const box=(l,v)=>`<div><span class="eyebrow">${l}</span><b>${v}</b></div>`;
+  $("det").innerHTML=`<div class="eyebrow sub">Games by mode</div><div class="mini">${MODES.map(([m,l])=>box(l,dash(V[`mode-${m}-${d}`]))).join("")}</div>
+    <div class="eyebrow sub">Daily 9</div><div class="mini">${box("Started",dash(V[`d9-${d}-started`]))}${box("Finished",dash(V[`d9-${d}-done`]))}${box("Avg vs par",a9==null?'<span class="na">–</span>':sgn(a9))}</div>
+    <div class="eyebrow sub">The Daily</div><div class="mini">${box("Used a hint",dash(V[`daily-${n}-hint`]))}${box("Used back",dash(V[`daily-${n}-back`]))}${box("Typical solve time",med||'<span class="na">–</span>')}${TIMES.map((l,k)=>box(l,dash(tm[k]))).join("")}</div>
+    <div class="eyebrow sub">Challenge links</div><div class="mini">${box("Sent",dash(V[`chal-made-${d}`]))}${box("Played",dash(V[`chal-played-${d}`]))}</div>`}
+$("detDay").onchange=details;$("go").onclick=load;load();
+
+// ---- Locked section. The passcode is a curtain against casual spoilers, not real security: the picks are computable from index.html.
 const PASS="34594e72b63c16ab360d264003d106d7881b9547e9d4db50b923eb4197e47e31",DAYS=30;
 const RUN_URL="https://github.com/dompescamedia/separation-golf/actions/workflows/set-daily.yml";
 const sha=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,"0")).join("");
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let G=null;
-// Run the real game in a hidden iframe so the schedule comes from the same code players get.
+// Run the real game in a hidden iframe so everything here comes from the same code players get.
 // Its storage lives in memory and its counter hits are swallowed, so this never touches the stats or your own game.
 function game(){if(G)return G;G=fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(src=>new Promise((res,rej)=>{
   const shim=`<base href="${new URL(".",location.href)}"><script>(()=>{const m={hideWelcome:"1",launch1:"1",player:"1"};
@@ -125,45 +178,95 @@ function game(){if(G)return G;G=fetch("index.html",{cache:"no-store"}).then(r=>r
   document.body.appendChild(fr);const t0=Date.now();
   (function wait(){let ok=false;try{ok=fr.contentWindow.eval("typeof ID2!=='undefined'&&!!ID2")}catch(e){}
     if(ok)return res(fr.contentWindow);if(Date.now()-t0>30000)return rej("timeout");setTimeout(wait,150)})()}));return G}
-async function schedule(){const box=document.getElementById("schedBody");box.hidden=false;box.innerHTML='<p class="note">Loading the game data…</p>';
+// Same wording as the X bot's daily post (tools/x_bot/daily_post.mjs).
+const postText=(n,label,tee,pin,par,url)=>[`⛳ Separation Golf · Daily #${n}`,label,`${tee} → ${pin}`,`Par ${par}. Get there through teammates in as few strokes as you can.`,url].filter(Boolean).join("\n");
+function xOpen(text){const enc=encodeURIComponent(text),web="https://x.com/intent/post?text="+enc;
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){let left=false;const v=()=>{if(document.hidden)left=true};document.addEventListener("visibilitychange",v);
+    location.href="twitter://post?message="+enc;setTimeout(()=>{document.removeEventListener("visibilitychange",v);if(!left&&!document.hidden)location.href=web},1600)}
+  else window.open(web,"_blank","noopener")}
+async function schedule(){const box=$("schedBody");box.hidden=false;box.innerHTML='<p class="note">Loading the game data…</p>';
   let W;try{W=await game()}catch(e){box.innerHTML='<p class="note">The game data did not load. Try again.</p>';G=null;return}
-  const ev=x=>W.eval(x),P=ev("P"),SET=ev("DAILY_SET"),SP=ev("SPECIALS");
-  const info=(a,b)=>{const d=ev("bfs")(a).dist[b];return d>0?`${d} jump${d>1?"s":""} · par ${d+2}`:"no route"};
+  const ev=x=>W.eval(x),P=ev("P"),PT=ev("PT"),T=ev("T"),FR=ev("FR"),SET=ev("DAILY_SET"),SP=ev("SPECIALS"),BASE=ev("BASE_URL"),bfs=ev("bfs"),plan=ev("dailyPlan"),rplan=ev("roundPlan");
+  const DC={};const dist=a=>DC[a]||(DC[a]=bfs(a).dist);
+  const best=(a,b)=>dist(a)[b];
+  const info=(a,b)=>{const d=best(a,b);return d>0?`${d} jump${d>1?"s":""} · par ${d+2}`:"no route"};
   const nm=i=>esc(P[i][0])+` <span class="na">${P[i][1]}–${P[i][2]}</span>`;
-  const today=etDate();let rows="";
-  for(let k=0;k<=DAYS;k++){const d=addDay(today,k),n=Math.round((new Date(d)-new Date(START))/864e5)+1,pl=ev("dailyPlan")(d),[a,b]=pl.pair;
+  const today=etDate();
+  // Warnings: a tee or pin used on another Daily within 14 days, or a par outside the usual 5–7.
+  const near={};for(let k=-14;k<=DAYS+14;k++){const d=addDay(today,k);plan(d).pair.forEach(p=>(near[p]=near[p]||[]).push(d))}
+  const warns=(d,a,b)=>{const w=[];for(const p of [a,b]){const o=near[p].filter(x=>x!==d&&Math.abs(new Date(x)-new Date(d))<=14*864e5);if(o.length)w.push(`${esc(P[p][0])} also ${o.map(short).join(", ")}`)}
+    const pr=best(a,b)+2;if(pr<5)w.push("Easy (par "+pr+")");if(pr>7)w.push("Tough (par "+pr+")");return w.join("<br>")};
+  const changeBox=(d,a,b)=>{const ch=`${d} ${P[a][3]} ${P[b][3]}`;
+    return `<span>${info(a,b)}.</span> <span>Copy <code>${ch}</code></span> <button data-copy="${ch}">Copy</button> <a href="${RUN_URL}" target="_blank" rel="noopener"><button>Run on GitHub</button></a>
+      ${SET[d]?`<span class="na">To undo the hand pick, run it with <code>${d} clear</code></span>`:""}
+      <span class="note" style="flex-basis:100%">On GitHub: Run workflow, paste into the box, then the green Run workflow button. Live in about a minute.</span>`};
+  const acHTML=(k,i)=>`<div class="ac" data-k="${k}"><input value="${i==null?"":esc(P[i][0])}" placeholder="Search players"><ul hidden></ul></div>`;
+  const norm=t=>t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+  function wireAC(root,pick,onPick){root.querySelectorAll(".ac").forEach(ac=>{const inp=ac.querySelector("input"),ul=ac.querySelector("ul");
+    inp.oninput=()=>{const q=norm(inp.value);if(q.length<2){ul.hidden=true;return}const hits=[];for(let i=0;i<P.length;i++)if(norm(P[i][0]).includes(q))hits.push(i);
+      ul.innerHTML=hits.sort((x,y)=>P[y][4]-P[x][4]).slice(0,10).map(i=>`<li data-i="${i}">${nm(i)}</li>`).join("");ul.hidden=!hits.length};
+    ul.onclick=e=>{const li=e.target.closest("li");if(!li)return;pick[ac.dataset.k]=+li.dataset.i;inp.value=P[+li.dataset.i][0];ul.hidden=true;onPick()}})}
+  let rows="";const opts=[];
+  for(let k=0;k<=DAYS;k++){const d=addDay(today,k),n=dnum(d),[a,b]=plan(d).pair;opts.push(`<option value="${d}"${k===1?" selected":""}>${short(d)} · Daily #${n}${k?"":" (today)"}</option>`);
     const tag=SET[d]?'<span class="tag set">Hand-picked</span>':SP[d.slice(5)]?`<span class="tag">${esc(SP[d.slice(5)].label)}</span>`:'<span class="tag">Generated</span>';
-    rows+=`<tr data-d="${d}"><td>${short(d)} · #${n}${k?"":" (today)"}</td><td>${nm(a)}</td><td>${nm(b)}</td><td class="num">${info(a,b)}</td><td>${tag}</td>
-      <td>${k?`<button class="linkbtn" data-ed="${d}">Edit</button> · `:""}<button class="linkbtn" data-d9="${d}">Daily 9</button></td></tr>`}
-  box.innerHTML=`<p class="note">Today plus the next ${DAYS} days. Edit opens a change you run on GitHub (it goes live in about a minute), or just ask Claude.</p>
-    <div style="overflow-x:auto"><table class="sched"><tr><th>Day</th><th>Tee</th><th>Pin</th><th>Shortest</th><th>Source</th><th></th></tr>${rows}</table></div>`;
-  box.onclick=e=>{const t=e.target,tr=t.closest("tr");if(!tr)return;const nx=tr.nextElementSibling;
+    rows+=`<tr data-d="${d}"><td>${short(d)} · #${n}${k?"":" (today)"}</td><td>${nm(a)}</td><td>${nm(b)}</td><td class="num">${info(a,b)}</td><td>${tag}</td><td class="warn">${warns(d,a,b)}</td>
+      <td>${k?`<button class="linkbtn" data-ed="${d}">Edit</button> · `:""}<button class="linkbtn" data-d9="${d}">Daily 9</button> · <button class="linkbtn" data-post="${d}">Post</button></td></tr>`}
+  const frOpts=FR.map((f,i)=>[f,i]).filter(([f])=>f[1]&&f[3]>=2026).sort((x,y)=>x[0][0].localeCompare(y[0][0])).map(([f,i])=>`<option value="${i}">${esc(f[0])}</option>`).join("");
+  box.innerHTML=`
+    <div class="eyebrow sub">Post to X</div>
+    <div class="lock"><select id="xDay">${opts.join("")}</select><label class="na"><input type="checkbox" id="xLink" checked style="height:auto;min-width:0"> Include the link</label></div>
+    <textarea id="xText" style="margin-top:8px"></textarea>
+    <div class="btns"><button class="primary" id="xPost">Post to X</button><button id="xCopy">Copy</button><span class="na" id="xCount"></span></div>
+    <p class="note">Opens X with the post filled in, so you just press Post. You can edit it here first. If the X bot's keys are ever added, it also posts each morning at 9, so skip the bot's day or yours.</p>
+    <div class="eyebrow sub">Upcoming holes</div>
+    <p class="note">Today plus the next ${DAYS} days. Edit makes a change you run on GitHub, or just ask Claude. Red notes flag repeats within two weeks and unusual pars.</p>
+    <div style="overflow-x:auto"><table class="sched"><tr><th>Day</th><th>Tee</th><th>Pin</th><th>Shortest</th><th>Source</th><th>Heads up</th><th></th></tr>${rows}</table></div>
+    <div class="eyebrow sub">Theme-day planner</div>
+    <div class="lock"><select id="thFr"><option value="">Pick a team</option>${frOpts}</select><select id="thDay">${opts.slice(1).join("")}</select><button id="thGo">Suggest</button></div>
+    <div id="thOut"></div>
+    <div class="eyebrow sub">Most-picked players</div>
+    <div class="lock"><select id="tpDay"></select><button id="tpGo">Show</button></div>
+    <div id="tpOut"></div>`;
+  // X composer
+  const xFill=()=>{const d=$("xDay").value,[a,b]=plan(d).pair,pl=plan(d);$("xText").value=postText(dnum(d),pl.label,P[a][0],P[b][0],best(a,b)+2,$("xLink").checked?BASE:"");xCount()};
+  const xCount=()=>{const t=$("xText").value,len=[...t.replace(/https?:\/\/\S+/g,"x".repeat(23))].length;$("xCount").textContent=`${len}/280`};
+  $("xDay").onchange=xFill;$("xLink").onchange=xFill;$("xText").oninput=xCount;xFill();
+  $("xPost").onclick=()=>xOpen($("xText").value);
+  $("xCopy").onclick=e=>{navigator.clipboard&&navigator.clipboard.writeText($("xText").value);e.target.textContent="Copied"};
+  box.addEventListener("click",e=>{const c=e.target.closest("[data-copy]");if(c){navigator.clipboard&&navigator.clipboard.writeText(c.dataset.copy);c.textContent="Copied"}});
+  // Schedule rows
+  box.querySelector(".sched").onclick=e=>{const t=e.target,tr=t.closest("tr");if(!tr||!(t.dataset.ed||t.dataset.d9||t.dataset.post))return;
+    if(t.dataset.post){$("xDay").value=t.dataset.post;xFill();scrollTo({top:$("xText").getBoundingClientRect().top+scrollY-120,behavior:"smooth"});return}
+    const nx=tr.nextElementSibling;
     if(nx&&nx.classList.contains("x")){const same=nx.dataset.k===(t.dataset.ed?"ed":"d9");nx.remove();if(same)return}
-    if(t.dataset.d9){const d=t.dataset.d9,li=[...Array(9)].map((_,i)=>{const [a,b]=ev("roundPlan")(d,i).pair;return `<b>${i+1}.</b> ${esc(P[a][0])} → ${esc(P[b][0])} <span class="na">(${info(a,b)})</span>`});
-      tr.insertAdjacentHTML("afterend",`<tr class="x" data-k="d9"><td colspan="6" class="d9">${li.join(" &nbsp; ")}</td></tr>`)}
-    if(t.dataset.ed)editor(tr,t.dataset.ed)};
-  function editor(tr,d){const [a0,b0]=ev("dailyPlan")(d).pair,pick={a:a0,b:b0};
-    tr.insertAdjacentHTML("afterend",`<tr class="x" data-k="ed"><td colspan="6"><div class="ed">
-      <div class="row"><span class="eyebrow" style="width:30px">Tee</span><div class="ac" data-k="a"><input value="${esc(P[a0][0])}"><ul hidden></ul></div></div>
-      <div class="row"><span class="eyebrow" style="width:30px">Pin</span><div class="ac" data-k="b"><input value="${esc(P[b0][0])}"><ul hidden></ul></div></div>
-      <div class="row out"></div></div></td></tr>`);
-    const ed=tr.nextElementSibling,out=ed.querySelector(".out");
-    const show=()=>{const ch=`${d} ${P[pick.a][3]} ${P[pick.b][3]}`;
-      out.innerHTML=`<span>${info(pick.a,pick.b)}.</span> <span>Copy <code>${ch}</code></span> <button data-copy>Copy</button> <a href="${RUN_URL}" target="_blank" rel="noopener"><button>Run on GitHub</button></a>
-        ${SET[d]?`<span class="na">To undo the hand pick, run it with <code>${d} clear</code></span>`:""}
-        <span class="note" style="flex-basis:100%">On GitHub: Run workflow, paste into the box, then the green Run workflow button.</span>`;
-      out.querySelector("[data-copy]").onclick=e=>{navigator.clipboard&&navigator.clipboard.writeText(ch);e.target.textContent="Copied"}};
-    ed.querySelectorAll(".ac").forEach(ac=>{const inp=ac.querySelector("input"),ul=ac.querySelector("ul");let hits=[];
-      inp.oninput=()=>{const q=inp.value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();if(q.length<2){ul.hidden=true;return}
-        hits=[];for(let i=0;i<P.length;i++){if(P[i][0].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(q))hits.push(i)}
-        hits=hits.sort((x,y)=>P[y][4]-P[x][4]).slice(0,10);
-        ul.innerHTML=hits.map(i=>`<li data-i="${i}">${nm(i)}</li>`).join("");ul.hidden=!hits.length};
-      ul.onclick=e=>{const li=e.target.closest("li");if(!li)return;pick[ac.dataset.k]=+li.dataset.i;inp.value=P[+li.dataset.i][0];ul.hidden=true;show()}});
-    show()}
+    if(t.dataset.d9){const d=t.dataset.d9,li=[...Array(9)].map((_,i)=>{const [a,b]=rplan(d,i).pair;return `<b>${i+1}.</b> ${esc(P[a][0])} → ${esc(P[b][0])} <span class="na">(${info(a,b)})</span>`});
+      tr.insertAdjacentHTML("afterend",`<tr class="x" data-k="d9"><td colspan="7" class="d9">${li.join(" &nbsp; ")}</td></tr>`)}
+    if(t.dataset.ed){const d=t.dataset.ed,[a0,b0]=plan(d).pair,pick={a:a0,b:b0};
+      tr.insertAdjacentHTML("afterend",`<tr class="x" data-k="ed"><td colspan="7"><div class="ed">
+        <div class="row"><span class="eyebrow" style="width:30px">Tee</span>${acHTML("a",a0)}</div>
+        <div class="row"><span class="eyebrow" style="width:30px">Pin</span>${acHTML("b",b0)}</div><div class="row out"></div></div></td></tr>`);
+      const ed=tr.nextElementSibling,show=()=>ed.querySelector(".out").innerHTML=changeBox(d,pick.a,pick.b);wireAC(ed,pick,show);show()}};
+  // Theme-day planner: a past star from the team tees off, a current player from the team is the pin, 3–5 jumps apart.
+  $("thGo").onclick=()=>{const f=+$("thFr").value,d=$("thDay").value;if(!$("thFr").value)return;
+    const onF=(i,from,to)=>PT[i].some(ti=>T[ti][3]===f&&T[ti][0]>=from&&T[ti][0]<=to);
+    const tees=[],pins=[];for(let i=0;i<P.length;i++){if(P[i][2]<2005&&P[i][4]>=25&&onF(i,0,2004))tees.push(i);if(P[i][2]>=2025&&P[i][4]>=8&&onF(i,2025,2026))pins.push(i)}
+    tees.sort((x,y)=>P[y][4]-P[x][4]);pins.sort((x,y)=>P[y][4]-P[x][4]);
+    const out=[],usedPin=new Map();for(const a of tees.slice(0,14)){const ds=dist(a);
+      const ok=pins.filter(b=>ds[b]>=3&&ds[b]<=5&&(usedPin.get(b)||0)<2).slice(0,2);ok.forEach(b=>{usedPin.set(b,(usedPin.get(b)||0)+1);out.push([a,b])});if(out.length>=12)break}
+    $("thOut").innerHTML=out.length?`<div style="overflow-x:auto"><table class="sched" style="margin-top:8px"><tr><th>Tee</th><th>Pin</th><th>Shortest</th><th></th></tr>${out.map(([a,b])=>`<tr><td>${nm(a)}</td><td>${nm(b)}</td><td class="num">${info(a,b)}</td><td><button class="linkbtn" data-use="${a},${b}">Use for ${short(d)}</button></td></tr>`).join("")}</table></div><div class="btns" id="thUse"></div>`
+      :'<p class="note">No 3 to 5 jump pairs found for this team. Try another, or ask Claude.</p>';
+    $("thOut").onclick=e=>{const u=e.target.dataset.use;if(!u)return;const [a,b]=u.split(",").map(Number);$("thUse").innerHTML=changeBox($("thDay").value,a,b)}};
+  // Most-picked: the counters are per player, so ask about the likely ones (on an eagle or birdie route), best known first.
+  $("tpDay").innerHTML=[...Array(Math.min(WINDOW,dnum(today)))].map((_,k)=>{const d=addDay(today,-k);return `<option value="${d}">${short(d)} · Daily #${dnum(d)}${k?"":" (today)"}</option>`}).join("");
+  $("tpGo").onclick=async()=>{const d=$("tpDay").value,n=dnum(d),[a,b]=plan(d).pair,da=dist(a),db=dist(b),bst=da[b];$("tpOut").innerHTML='<p class="note">Counting…</p>';
+    const cand=[];for(let i=0;i<P.length;i++)if(i!==a&&i!==b&&da[i]>0&&db[i]>0&&da[i]+db[i]<=bst+1)cand.push(i);
+    const top=cand.sort((x,y)=>P[y][4]-P[x][4]).slice(0,150),ak=i=>P[i][3].replace(/[^A-Za-z0-9_.-]/g,"_");
+    const V=await getMany([`daily-${n}-holed`,...top.map(i=>`daily-${n}-p${ak(i)}`)]),h=V[`daily-${n}-holed`]||0;
+    const list=top.map(i=>[i,V[`daily-${n}-p${ak(i)}`]||0]).filter(x=>x[1]).sort((x,y)=>y[1]-x[1]).slice(0,12);
+    $("tpOut").innerHTML=`<p class="note">${esc(P[a][0])} → ${esc(P[b][0])}. ${h} holed. Checked the ${top.length} likeliest players.</p>`+(list.length?`<ol class="tops">${list.map(([i,c])=>`<li>${nm(i)}: ${c} (${pct(c,h)})</li>`).join("")}</ol>`:'<p class="note">No picks counted yet.</p>')};
 }
-async function unlock(){const v=document.getElementById("pass").value;if(await sha(v)!==PASS){document.getElementById("pass").value="";document.getElementById("pass").placeholder="Wrong passcode";return}
-  try{localStorage.setItem("sg-admin",PASS)}catch(e){}document.getElementById("lock").hidden=true;schedule()}
-document.getElementById("unlock").onclick=unlock;document.getElementById("pass").onkeydown=e=>{if(e.key==="Enter")unlock()};
-try{if(localStorage.getItem("sg-admin")===PASS){document.getElementById("lock").hidden=true;schedule()}}catch(e){}
-
+async function unlock(){const v=$("pass").value;if(await sha(v)!==PASS){$("pass").value="";$("pass").placeholder="Wrong passcode";return}
+  try{localStorage.setItem("sg-admin",PASS)}catch(e){}$("lock").hidden=true;schedule()}
+$("unlock").onclick=unlock;$("pass").onkeydown=e=>{if(e.key==="Enter")unlock()};
+try{if(localStorage.getItem("sg-admin")===PASS){$("lock").hidden=true;schedule()}}catch(e){}
 </script>
