@@ -755,7 +755,7 @@ function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Alba
 const sym=r=>!r||!r.done?"·":r.gaveUp?"❌":(r.strokes-r.par<=-2?"🦅":r.strokes-r.par===-1?"🐦":r.strokes-r.par===0?"⚪":r.strokes-r.par===1?"🟧":"🟥");
 // Headshots come from MLB's image server by MLB ID (players[i][9]). No ID or no photo shows the silhouette.
 // Our own photos for players MLB has no headshot for, keyed by player ID: files live in faces/.
-const FACES={};
+const FACES={"boutoji01":"boutoji01.jpg"};
 const HS=i=>{if(FACES[P[i][3]])return "faces/"+FACES[P[i][3]];const m=P[i][9];return m?`https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/${m}/headshot/67/current`:""};
 const face=(i,cls)=>{const u=HS(i);return`<span class="face ${cls||""}" aria-hidden="true">${u?`<img src="${u}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span>`};
 const yrs=i=>P[i][1]===P[i][2]?String(P[i][1]):P[i][1]+"–"+P[i][2];
