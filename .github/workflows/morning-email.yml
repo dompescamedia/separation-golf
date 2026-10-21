@@ -1,0 +1,18 @@
+name: Morning email
+# Emails yesterday's play counts. Until the SMTP_USER and SMTP_PASS secrets are added it only prints the email.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 12 * * *" # 8:30am Eastern in winter, 7:30am in summer
+permissions:
+  contents: read
+jobs:
+  email:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/morning_email.py
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ vars.MAIL_TO }}
