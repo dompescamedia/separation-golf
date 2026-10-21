@@ -138,6 +138,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .trail .t b{font-weight:600}
 .trail .via{font-size:12.5px;color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+.xshare{display:flex;flex-direction:column;gap:6px;margin-top:10px}.xbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700}
 .btn,.diff button{border:2px solid var(--ink);background:var(--card);border-radius:4px;padding:8px 12px;font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:12.5px}
 .rival{margin-top:10px;padding:8px 10px;border-left:4px solid var(--red);background:var(--bg);font-size:14px}
 .rival .rv{font-family:var(--mono);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.06em;color:var(--red);margin-right:8px}
@@ -902,7 +903,7 @@ function resultHTML(){
       ${twoRoutes(h,best,pathList)}
     </div>
     <div class="sharebox" id="sharebox">${esc(shareText())}</div>
-    ${pick}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
+    ${pick}${xShareHTML(h)}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
   </section>`;
 }
 // How many routes score an eagle, birdie or par (Dom, 2026-10-21). A route is a chain of teammates with no player twice.
@@ -957,6 +958,22 @@ function rivalHTML(){const h=S.hole,r=h.rival;if(!r)return"";
   if(!h.done)return`<div class="rival"><span class="rv">Rival</span>Your friend holed this in <b>${r.strokes}</b>. Beat it.</div>`;
   if(h.gaveUp)return`<div class="rival"><span class="rv">Rival</span>Your friend holed this in <b>${r.strokes}</b>.</div>`;
   const d=r.strokes-h.strokes;return`<div class="rival"><span class="rv">Rival</span>${d>0?`You beat your friend by <b>${d}</b>.`:d<0?`Your friend wins by <b>${-d}</b>.`:"All square. You tied your friend."}</div>`}
+// Post to X (Dom, 2026-10-21), Immaculate Grid style: score, your route, its WAR, Deep Cut rank (top 500 only) and a link to play.
+// On a live Daily or Daily 9 the players in between show as initials so the post doesn't give the answer away (switch remembered).
+const xLive=h=>(h.kind==="daily"||h.kind==="round")&&!h.meta.late;
+const xHide=h=>xLive(h)&&store.get("xspoil")!==false;
+const initials=p=>P[p][0].split(/\s+/).filter(w=>/^[A-Za-zÀ-ÿ]/.test(w)).map(w=>w[0].toUpperCase()+".").join("");
+function xText(h){const rel=h.strokes-h.par,ids=h.trail.map(st=>st.p),hide=xHide(h);
+  const head=(h.kind==="daily"?`Separation Golf Daily #${h.meta.n}`:h.kind==="round"?`Separation Golf Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:"Separation Golf")+(h.gaveUp?" · Picked up":` ⛳ ${term(rel,h.strokes)} (${h.strokes} on a par ${h.par})`)+(h.hard?" · Hard mode 🔥":"");
+  const nm=(p,i,last)=>hide&&i>0&&i<ids.length-1?initials(p):last?P[p][0].split(" ").slice(-1)[0]:P[p][0];
+  let route=h.gaveUp?`${P[h.a][0]} → ${P[h.b][0]}`:ids.map((p,i)=>nm(p,i,false)).join(" → ");
+  if(route.length>150)route=ids.map((p,i)=>nm(p,i,true)).join(" → ");
+  const war=h.gaveUp?0:ids.slice(1,-1).reduce((t,p)=>t+(P[p][10]||0),0)/10;
+  const rk=h.kind==="daily"&&!h.gaveUp&&h.rk&&!h.rk.over?` · Deep Cut ${rankTxt(h.rk)}`:"";
+  const st=h.kind==="daily"&&!h.meta.late?dailyStreak().streak:0;
+  return [head,route,h.gaveUp?"":`${war.toFixed(1)} WAR in between${rk}`,st>1?`🔥 ${st}-day streak`:"",`Play: ${BASE_URL.replace(/\/$/,"")} @SeparationGolf`].filter(Boolean).join("\n")}
+const X_ICO=`<svg viewBox="0 0 24 24" aria-hidden="true" width="15" height="15" fill="currentColor"><path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.3L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg>`;
+function xShareHTML(h){return`<div class="xshare">${xLive(h)&&!h.gaveUp?`<label class="chk small"><input type="checkbox" id="xspoil" ${xHide(h)?"checked":""}> Hide the players in between (no spoilers)</label>`:""}<button class="btn xbtn" id="xpost">${X_ICO} Post to X</button></div>`}
 function shareText(){
   const h=S.hole,rel=h.strokes-h.par;
   const head=h.kind==="daily"?`⛳ Separation Golf · Daily #${h.meta.n}${h.hard?" · Hard mode 🔥":""}`:h.kind==="round"?`⛳ Separation Golf · Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:`⛳ Separation Golf`;
@@ -1236,6 +1253,8 @@ function bind(){bindCards();fillCrowd();
   on("hint",hint);on("back",back);on("mull",mulligan);on("giveup",giveUp);
   document.querySelectorAll("[data-peek]").forEach(b=>b.onclick=()=>{S.peek[b.dataset.peek]=!S.peek[b.dataset.peek];render()});
   on("share",()=>copy(S.hole.kind==="run"?runShare():shareText()));
+  on("xpost",()=>window.open("https://x.com/intent/post?text="+encodeURIComponent(xText(S.hole)),"_blank","noopener"));
+  const xs=$("#xspoil");if(xs)xs.onchange=()=>store.set("xspoil",xs.checked);
   on("roundshare",()=>{const res=roundState(),t=roundTotals(res);copy(roundShare(res,t.st,t.par),"roundbox")});
   on("chal",()=>copy(challengeMsg()));
   on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
