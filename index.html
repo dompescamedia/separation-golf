@@ -178,6 +178,9 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .chip[aria-expanded="true"]{background:var(--green);color:var(--green-ink)}
 .chip.locked{opacity:.4;text-decoration:line-through;cursor:not-allowed}
 .chip.hint{box-shadow:0 0 0 2px var(--pin)}
+.rcount{margin:10px 0 4px}.rcrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.rcrow>div{border:1.5px solid var(--line);border-radius:4px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.rcrow b{font-size:18px;font-variant-numeric:lining-nums tabular-nums;line-height:1.15}.rcrow span{font-size:11.5px;color:var(--muted);display:flex;flex-direction:column}.rcrow i{font-style:normal;font-weight:700;color:var(--ink)}
 .roster{border:2px solid var(--ink);border-radius:4px;background:var(--bg);padding:10px;display:flex;flex-direction:column;gap:8px}
 .rtools{display:flex;flex-wrap:wrap;gap:6px}.rtools input{flex:1 1 170px;min-width:0}
 .rtools select{flex:1 1 130px;min-height:44px;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:4px;padding:0 8px}
@@ -885,7 +888,7 @@ function resultHTML(){
     ${rivalHTML()}${h.kind==="daily"&&!h.meta.late||h.kind==="round"&&h.meta.idx===8?nextInHTML():""}<div class="eyebrow">${h.gaveUp?"Here's how it could go":"Holed out"}${h.hard?" · Hard mode":""}</div>
     <div class="term ${!h.gaveUp&&rel>0?"over":""}">${esc(t)}</div>
     <div class="small muted">${h.gaveUp?`Shortest route was ${h.best} jump${h.best>1?"s":""}.`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}${h.hints?`, ${h.hints} hint${h.hints>1?"s":""}`:""}. Perfect route: ${h.best}.`}</div>
-    ${h.kind==="daily"?dailyExtrasHTML():""}
+    ${h.kind==="daily"?dailyExtrasHTML():""}${routeCountsHTML(h)}
     <div class="paths">
       ${h.gaveUp?"":`<div><div class="eyebrow">Your route</div>${pathList(h.trail)}</div>`}
       ${h.rival?`<div><div class="eyebrow">Friend's route · ${h.rival.strokes}</div>${pathList(rivalSteps(h.rival,h.a,h.allow))}</div>`:""}
@@ -895,6 +898,22 @@ function resultHTML(){
     ${pick}<div class="actions" style="margin-top:10px"><button class="btn primary" id="share">Copy result</button>${next}<button class="btn" id="chal">Challenge a friend</button></div>
   </section>`;
 }
+// How many routes score an eagle, birdie or par (Dom, 2026-10-21). A route is a chain of teammates with no player twice.
+// Walks of the shortest length d and of d+1 can't repeat a player; at d+2 the only repeat is stepping to a teammate and straight
+// back, so those are subtracted (f/g count shortest walks to and from each player on a shortest route). Checked against brute force.
+function routeCounts(a,b,allow){const da=bfs(a,allow).dist,db=bfs(b,allow).dist,d=db[a];if(d<0)return null;
+  const NB=new Map(),nb=v=>{let s=NB.get(v);if(s)return s;s=new Set();for(const ti of PT[v]){if(allow&&!allow[ti])continue;for(const u of T[ti][2])if(u!==v&&da[u]+db[u]<=d+2)s.add(u)}s=[...s];NB.set(v,s);return s};
+  const walks=L=>{let cur=new Map([[a,1]]);for(let i=1;i<=L;i++){const nx=new Map();for(const [u,c] of cur)for(const v of nb(u))if(da[v]<=i&&db[v]<=L-i)nx.set(v,(nx.get(v)||0)+c);cur=nx}return cur.get(b)||0};
+  const eagle=walks(d),birdie=walks(d+1),f=new Map([[a,1]]),g=new Map([[b,1]]);
+  for(let i=1;i<=d;i++)for(const [u,c] of [...f])if(da[u]===i-1)for(const v of nb(u))if(da[v]===i&&db[v]===d-i)f.set(v,(f.get(v)||0)+c);
+  for(let i=1;i<=d;i++)for(const [u,c] of [...g])if(db[u]===i-1)for(const v of nb(u))if(db[v]===i&&da[v]===d-i)g.set(v,(g.get(v)||0)+c);
+  let back=-eagle*d;for(const [v,c] of f)if(g.has(v))back+=c*g.get(v)*nb(v).length;
+  return {eagle,birdie,par:walks(d+2)-back}}
+const bigN=n=>n<1e6?n.toLocaleString("en-US"):n<1e9?(n/1e6).toFixed(1).replace(/\.0$/,"")+"M":n<1e12?(n/1e9).toFixed(1).replace(/\.0$/,"")+"B":(n/1e12).toFixed(1).replace(/\.0$/,"")+"T";
+function routeCountsHTML(h){const box=rc=>`<div class="rcount" id="rcount"><div class="eyebrow">Routes that score</div><div class="rcrow">${[["Eagle",h.best,"eagle"],["Birdie",h.best+1,"birdie"],["Par",h.best+2,"par"]].map(([l,n,k])=>`<div><b>${rc?bigN(rc[k]):"…"}</b><span><i>${l}</i>${n} jump${n>1?"s":""}</span></div>`).join("")}</div></div>`;
+  if(h.rc)return box(h.rc);
+  if(!h.rcBusy){h.rcBusy=1;setTimeout(()=>{h.rc=routeCounts(h.a,h.b,h.allow);const el=$("#rcount");if(el&&S.hole===h)el.outerHTML=box(h.rc)},30)}
+  return box(null)}
 // Daily result extras: route rank, streak, and how everyone else did (filled in by fillCrowd).
 function dailyExtrasHTML(){const h=S.hole;let o="";
   if(!h.gaveUp){if(h.rk===undefined){h.rk=routeRank(h)||null;if(h.rk)save()}
