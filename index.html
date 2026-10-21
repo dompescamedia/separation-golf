@@ -301,6 +301,8 @@ table.sc{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-num
 .bbsub .hof{color:var(--cb-gold)}
 .bbwar{margin-top:6px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .bbwar b{font-family:var(--body);font-size:24px;letter-spacing:0;margin-right:4px;font-variant-numeric:lining-nums}
+.bbx{margin-top:6px;font-size:13px;font-style:italic}
+.bbx a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .bbbio{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;font-size:13px;border-bottom:2px solid var(--cb-ink);padding-bottom:8px}
 .bbbio span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
 .bbbio b{font-weight:600}
@@ -758,6 +760,9 @@ const sym=r=>!r||!r.done?"·":r.gaveUp?"❌":(r.strokes-r.par<=-2?"🦅":r.strok
 // Headshots come from MLB's image server by MLB ID (players[i][9]). No ID or no photo shows the silhouette.
 // Our own photos for players MLB has no headshot for, keyed by player ID: files live in faces/.
 const FACES={"boutoji01":"boutoji01.jpg"};
+// Extra notes on a player's card, keyed by player ID: [text, optional link]. Dom picks these one at a time.
+const EXTRAS={"boutoji01":[['Author of "Ball Four"',"https://a.co/d/09ah8WoH"]]};
+const extras=i=>(EXTRAS[P[i][3]]||[]).map(([t,u])=>`<div class="bbx">${u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`:esc(t)}</div>`).join("");
 const HS=i=>{if(FACES[P[i][3]])return "faces/"+FACES[P[i][3]];const m=P[i][9];return m?`https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/${m}/headshot/67/current`:""};
 const face=(i,cls)=>{const u=HS(i);return`<span class="face ${cls||""}" aria-hidden="true">${u?`<img src="${u}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span>`};
 const yrs=i=>P[i][1]===P[i][2]?String(P[i][1]):P[i][1]+"–"+P[i][2];
@@ -1108,7 +1113,7 @@ function renderCard(i,c,tab){
     const LP=c.lp||{},body=c.p.map((r,j)=>{for(let k=2;k<12;k++)tot[k]+=r[k];return row(r,yr(r[0]),W&&W[j],LP[r[0]])}).join("");
     tot[1]="";table=`<table class="bbt"><thead><tr><th>Year</th><th>Tm</th><th>W</th><th>L</th><th>ERA</th>${W?"<th>WAR</th>":""}<th>G</th><th>GS</th><th>SV</th><th>IP</th><th>H</th><th>BB</th><th>SO</th><th>WHIP</th></tr></thead><tbody>${body}</tbody><tfoot>${row(tot,"Career",wsum(W))}</tfoot></table>`}
   const facts=[bio.pos&&["Position",bio.pos],(bio.bats||bio.throws)&&["Bats/Throws",(bio.bats||"?")+"/"+(bio.throws||"?")],(bio.ht||bio.wt)&&["Ht/Wt",[bio.ht,bio.wt&&bio.wt+" lbs"].filter(Boolean).join(", ")],bio.born&&["Born",bio.born],bio.from&&["Hometown",bio.from]].filter(Boolean);
-  $("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div>${c.war!=null?`<div class="bbwar"><b>${c.war.toFixed(1)}</b> career WAR</div>`:""}</div></div>
+  $("#cardbody").innerHTML=`<div class="bbhead">${face(i,"cardface")}<div><div class="bbname">${esc(P[i][0])}</div><div class="bbsub">${esc(bio.pos||"")}${P[i][5]?' · <span class="hof">Hall of Fame</span>':""}</div>${c.war!=null?`<div class="bbwar"><b>${c.war.toFixed(1)}</b> career WAR</div>`:""}${extras(i)}</div></div>
     <div class="bbbio">${facts.map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join("")}</div>
     ${hasB&&hasP?`<div class="bbtabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-ctab="${k}" aria-selected="${tab===k}">${l}</button>`).join("")}</div>`:`<div class="bbtabs single"><span>${tab==="p"?"Pitching":"Batting"}</span></div>`}
     <div class="bbscroll">${table||'<div class="cload">No stats on record.</div>'}</div>
