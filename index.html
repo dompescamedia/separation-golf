@@ -520,7 +520,9 @@ footer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:cent
 
 <script>
 const BASE_URL = "https://separationgolf.com/";
-const LAUNCH = "2026-10-15";
+// Archive starts 2026-09-21 (Dom, 2026-10-21) so Daily numbers count from there. The site went live 2026-10-15:
+// analytics keys and on-device keys still number Dailies from that day (keyNum), and days before it have no crowd stats.
+const LAUNCH = "2026-09-21", LIVE = "2026-10-15";
 const MINY = 1871, MAXY = 2026;
 let P, TN, T, PT, NP, NT, FR, ID2;
 const $ = s => document.querySelector(s);
@@ -611,7 +613,7 @@ function etDate(){try{return new Intl.DateTimeFormat("en-CA",{timeZone:"America/
   catch(e){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}}
 const weekday=s=>new Date(s+"T12:00:00Z").getUTCDay();
 const prevDay=s=>{const d=new Date(s+"T12:00:00Z");d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10)};
-const dayNum=s=>Math.round((new Date(s+"T12:00:00Z")-new Date(LAUNCH+"T12:00:00Z"))/864e5)+1;
+const dayNum=s=>Math.round((new Date(s+"T12:00:00Z")-new Date(LAUNCH+"T12:00:00Z"))/864e5)+1, keyNum=s=>dayNum(s)-dayNum(LIVE)+1;
 const fmtDate=s=>new Date(s+"T12:00:00Z").toLocaleDateString(undefined,{month:"short",day:"numeric",timeZone:"UTC"});
 
 // Hand-picked days, keyed MM-DD. Anything not listed is generated automatically.
@@ -619,7 +621,15 @@ const SPECIALS={"04-15":{label:"Jackie Robinson Day",tee:"robinja02"}};
 const knownOr2000s=b=>P[b][4]>=12||(P[b][2]>=2000&&seasons(b)>=6);
 const PLAN={};
 // Hand-picked Dailies by date (Eastern): [tee, pin] as player IDs.
-const DAILY_SET={"2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01","ohtansh01"],"2026-10-17":["mayswi01","judgeaa01"],
+const DAILY_SET={"2026-09-21":["snidedu01","judgeaa01"],"2026-09-22":["fordwh01","yelicch01"],"2026-09-23":["cartega01","mccutan01"],
+  "2026-09-24":["perryga01","harpebr03"],"2026-09-25":["newhoha01","goldspa01"],"2026-09-26":["schoere01","martijd02"],
+  "2026-09-27":["boudrlo01","lemahdj01"],"2026-09-28":["ottme01","chapmar01"],"2026-09-29":["hartnga01","ramirjo01"],
+  "2026-09-30":["stargwi01","bellico01"],"2026-10-01":["benchjo01","kershcl01"],"2026-10-02":["freehbi01","guerrvl02"],
+  "2026-10-03":["greenha01","verlaju01"],"2026-10-04":["vaughar01","freemfr01"],"2026-10-05":["ferreri01","correca01"],
+  "2026-10-06":["fellebo01","kimbrcr01"],"2026-10-07":["minosmi01","abreujo02"],"2026-10-08":["dawsoan01","scherma01"],
+  "2026-10-09":["mizejo01","crawfbr01"],"2026-10-10":["rizzuph01","degroja01"],"2026-10-11":["murraed02","bryankr01"],
+  "2026-10-12":["lombaer01","colege01"],"2026-10-13":["wanerpa01","semiema01"],"2026-10-14":["yountro01","haderjo01"],
+  "2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01","ohtansh01"],"2026-10-17":["mayswi01","judgeaa01"],
   "2026-10-18":["jacksre01","bettsmo01"],"2026-10-19":["aaronha01","harpebr03"],"2026-10-20":["koufasa01","troutmi01"],
   "2026-10-21":["clemero01","sotoju01"],"2026-10-22":["kingmda01","alonspe01"],"2026-10-23":["willite01","yelicch01"],
   "2026-10-24":["boutoji01","chourja01"],"2026-10-25":["brettge01","wittbo02"],"2026-10-26":["musiast01","kershcl01"],
@@ -628,8 +638,7 @@ const DAILY_SET={"2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01",
   "2026-11-02":["robinfr02","machama01"],"2026-11-03":["bankser01","verlaju01"],"2026-11-04":["kalinal01","skubata01"],
   "2026-11-05":["carewro01","stantmi03"],"2026-11-06":["robinbr01","hendegu01"],"2026-11-07":["carltst01","scherma01"],
   "2026-11-08":["morgajo02","ramirjo01"],"2026-11-09":["fiskca01","bogaexa01"],"2026-11-10":["killeha01","seageco01"],
-  "2026-11-11":["spahnwa01","salech01"],"2026-11-12":["camparo01","rodriju01"],
-  "2026-11-13":["mantlmi01","freemfr01"]};
+  "2026-11-11":["spahnwa01","salech01"],"2026-11-12":["camparo01","rodriju01"],"2026-11-13":["mantlmi01","freemfr01"]};
 // The Archive stays off until there are past Dailies worth replaying (Dom, Oct 2026).
 const SHOW_ARCHIVE=true;
 // Regular Daily: a well-known player from the past tees off, a relevant current player is the pin.
@@ -685,7 +694,7 @@ const cur=()=>S.hole.trail[S.hole.trail.length-1].p;
 const teamsOf=u=>S.hole.allow?PT[u].filter(ti=>S.hole.allow[ti]):PT[u];
 const ageIn=(p,ti)=>P[p][7]?T[ti][0]-P[p][7]:null;
 
-function startDaily(d){const today=etDate();d=d||today;const pl=dailyPlan(d);newHole(pl.pair[0],pl.pair[1],"daily",{date:d,n:dayNum(d),label:pl.label,late:d!==today},pl.C,"daily:"+d)}
+function startDaily(d){const today=etDate();d=d||today;const pl=dailyPlan(d);newHole(pl.pair[0],pl.pair[1],"daily",{date:d,n:dayNum(d),k:keyNum(d),label:pl.label,late:d!==today},pl.C,"daily:"+d)}
 function etLeft(){try{const f=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hourCycle:"h23",hour:"2-digit",minute:"2-digit",second:"2-digit"}).formatToParts(new Date()),g=t=>+f.find(x=>x.type===t).value;
   const l=86400-(g("hour")*3600+g("minute")*60+g("second"));return`${Math.floor(l/3600)}h ${String(Math.floor(l%3600/60)).padStart(2,"0")}m ${String(l%60).padStart(2,"0")}s`}catch(e){return"midnight Eastern"}}
 const nextInHTML=()=>`<div class="nextin">Next Daily in <b class="cd">${etLeft()}</b></div>`;
@@ -735,12 +744,12 @@ function bump(h,k){if(h.kind==="range")return;const was=h.strokes;h.n=(h.n??h.st
 function jump(p,t){const h=S.hole;if(h.done)return;
   h.trail.push({p,t});bump(h,1);S.open=-1;S.filter="";S.tq="";h.hintTeam=-1;
   // Plays (analytics thread, 2026-10-21): a hole counts as played on its first move, so page loads that open the Daily don't count.
-  if(h.trail.length===2&&h.kind!=="tutor"&&!h.pinged){h.pinged=1;ping("plays-"+etDate());firstMove(h);if(h.kind==="daily"&&!h.meta.late&&!store.get("started-"+h.meta.n)){store.set("started-"+h.meta.n,1);ping("daily-"+h.meta.n+"-started")}}
+  if(h.trail.length===2&&h.kind!=="tutor"&&!h.pinged){h.pinged=1;ping("plays-"+etDate());firstMove(h);if(h.kind==="daily"&&!h.meta.late&&!store.get("started-"+h.meta.k)){store.set("started-"+h.meta.k,1);ping("daily-"+h.meta.k+"-started")}}
   if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"});if(p===h.b&&h.kind==="daily")openSharePop();if(p===h.b&&roundJustDone(h)){d9Done(h.meta.date);openRoundPop(h.meta.date)}}
-function back(){const h=S.hole;if(h.done||h.trail.length<2)return;if(h.kind==="daily"&&!h.meta.late)pingOnce("daily-"+h.meta.n+"-back");const prev=h.trail[h.trail.length-2];
+function back(){const h=S.hole;if(h.done||h.trail.length<2)return;if(h.kind==="daily"&&!h.meta.late)pingOnce("daily-"+h.meta.k+"-back");const prev=h.trail[h.trail.length-2];
   h.trail.push({p:prev.p,t:-2});bump(h,1);S.open=-1;h.hintTeam=-1;save();render()}
 function hint(){const h=S.hole;if(h.done)return;const u=cur();const du=h.distT[u];
-  for(const ti of teamsOf(u))for(const v of T[ti][2])if(h.distT[v]===du-1){if(h.kind==="daily"&&!h.meta.late)pingOnce("daily-"+h.meta.n+"-hint");h.hintTeam=ti;h.hints++;bump(h,1);S.open=ti;save();render();return}}
+  for(const ti of teamsOf(u))for(const v of T[ti][2])if(h.distT[v]===du-1){if(h.kind==="daily"&&!h.meta.late)pingOnce("daily-"+h.meta.k+"-hint");h.hintTeam=ti;h.hints++;bump(h,1);S.open=ti;save();render();return}}
 // Mulligan: take back the last move for free. One per hole, or one for the whole Daily 9.
 const roundMull=d=>store.get("mull:"+d);
 const mullLeft=()=>{const h=S.hole;return h.kind==="round"?!roundMull(h.meta.date):!h.mullUsed};
@@ -759,7 +768,7 @@ function pingOnce(k){if(store.get("pg:"+k))return;store.set("pg:"+k,1);ping(k)}
 const modeOf=h=>h.kind==="daily"?(h.meta.late?"archive":"daily"):h.kind==="round"?"d9":h.kind==="custom"&&h.meta.ch?"challenge":h.kind;
 function firstMove(h){const d=etDate();ping("mode-"+modeOf(h)+"-"+d);
   if(h.kind==="round"&&h.meta.idx===0&&h.meta.date===d)pingOnce("d9-"+d+"-started");
-  if(h.kind==="daily"&&!h.meta.late&&!store.get("t0-"+h.meta.n))store.set("t0-"+h.meta.n,Date.now());
+  if(h.kind==="daily"&&!h.meta.late&&!store.get("t0-"+h.meta.k))store.set("t0-"+h.meta.k,Date.now());
   if(h.meta.ch)ping("chal-played-"+d)}
 function ping(k){try{return fetch(AB+"hit/dompesca-sepgolf/"+k,{mode:"no-cors",keepalive:true}).catch(()=>{})}catch(e){return Promise.resolve()}}
 // Read one counter; a key nobody has hit yet is 0. Any other failure rejects so the crowd box stays hidden.
@@ -772,8 +781,8 @@ function countVisit(){const d=etDate();if(!store.get("player"))store.set("player
 function finish(gave){const h=S.hole;h.done=true;
   if(h.kind==="daily"&&!gave)h.rk=routeRank(h)||undefined;
   // On-the-day Daily finishes feed the crowd counts: total holed, score bucket, and each player used in between.
-  if(h.kind==="daily"&&!h.meta.late){const n="daily-"+h.meta.n;
-    const t0=store.get("t0-"+h.meta.n),tb=m=>m<1?0:m<2?1:m<3?2:m<5?3:m<10?4:5;if(!gave&&t0)pingOnce(n+"-t"+tb((Date.now()-t0)/6e4));
+  if(h.kind==="daily"&&!h.meta.late){const n="daily-"+h.meta.k;
+    const t0=store.get("t0-"+h.meta.k),tb=m=>m<1?0:m<2?1:m<3?2:m<5?3:m<10?4:5;if(!gave&&t0)pingOnce(n+"-t"+tb((Date.now()-t0)/6e4));
     h.pinged=Promise.all(gave?[ping(n+"-gaveup")]:[ping(n+"-holed"),ping(n+"-r"+rBucket(h)),...h.trail.slice(1,-1).map(st=>ping(n+"-p"+akey(st.p)))])}if(h.clock)h.clock.end=Date.now();h.gaveUp=gave;if(h.kind==="endless"){S.tally.holes++;S.tally.over+=gave?2:(h.strokes-h.par)}}
 
 function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Albatross","-2":"Eagle","-1":"Birdie","0":"Par","1":"Bogey","2":"Double bogey","3":"Triple bogey"})[rel]||"+"+rel}
@@ -959,8 +968,9 @@ function fillCrowd(){const h=S.hole,box=$("#crowd");if(!box||!h||h.kind!=="daily
       ${!h.meta.late&&total>1&&!h.gaveUp?`<div class="small">You beat ${Math.round(worse/(total-1)*100)}% of everyone else.</div>`:""}
       ${c.mids.length&&holed?`<div class="small">Your picks: ${c.mids.map(m=>`${esc(P[m.p][0])} <b>${m.c&&m.c/holed<.005?"&lt;1":Math.round(m.c/holed*100)}%</b>`).join(" · ")} of finishers went through them.</div>`:""}`;
     b.hidden=false};
+  if(h.meta.k<1)return;
   if(h.crowd!==undefined)return show(h.crowd);
-  if(!h.crowdP){const n="daily-"+h.meta.n,mids=h.gaveUp?[]:h.trail.slice(1,-1).map(st=>st.p);
+  if(!h.crowdP){const n="daily-"+h.meta.k,mids=h.gaveUp?[]:h.trail.slice(1,-1).map(st=>st.p);
     h.crowdP=(h.pinged||Promise.resolve()).then(()=>Promise.all([abGet(n+"-gaveup"),...[0,1,2,3,4,5].map(i=>abGet(n+"-r"+i)),...mids.map(p=>abGet(n+"-p"+akey(p)))]))
       .then(v=>({gave:v[0],r:v.slice(1,7),mids:mids.map((p,i)=>({p,c:v[7+i]}))}),()=>null).then(c=>{h.crowd=c;show(c)})}}
 function challengeLink(){const h=S.hole,C=h.C;let l=BASE_URL+"#ch."+P[h.a][3]+"."+P[h.b][3];
