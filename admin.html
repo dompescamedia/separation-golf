@@ -9,7 +9,7 @@
 <style>
 :root{--bg:#f6eedb;--card:#fffaf0;--ink:#1d2a44;--muted:#6b6a63;--line:#d9ceb4;--red:#b3262d;--blue:#24508f;--green:#2f7a4a;--bar2:#c9b78f}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101826;--card:#182235;--ink:#f6eedb;--muted:#a9a596;--line:#2c3a55;--red:#ff6b6b;--blue:#7fb0ff;--green:#6fcf8e;--bar2:#4c5a75}}
-*{box-sizing:border-box}
+*{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Bitter,Georgia,serif}
 main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
 h1{margin:0;font:400 38px/1 Yellowtail,cursive;color:var(--red);transform:rotate(-2deg);transform-origin:left bottom}
@@ -36,6 +36,19 @@ th:first-child,td:first-child{text-align:left}
 .mix i{display:block;height:100%}
 .na{color:var(--muted)}
 p.note{color:var(--muted);font-size:13px;margin:6px 0 0}
+.sched td:nth-child(n+2){text-align:left}.sched td.num{text-align:right}
+.tag{font:700 10px "Courier Prime",monospace;letter-spacing:.06em;text-transform:uppercase;padding:2px 5px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.tag.set{color:var(--blue);border-color:var(--blue)}
+.lock{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input{font:16px Bitter,serif;height:36px;padding:0 8px;border:2px solid var(--ink);border-radius:4px;background:var(--card);color:var(--ink);min-width:0}
+.ed{background:var(--bg);border:1px dashed var(--ink);border-radius:6px;padding:10px;margin:4px 0 8px;white-space:normal}
+.ed .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.ac{position:relative;flex:1 1 200px}.ac input{width:100%}
+.ac ul{position:absolute;z-index:5;left:0;right:0;top:38px;margin:0;padding:0;list-style:none;background:var(--card);border:2px solid var(--ink);border-radius:4px;max-height:240px;overflow:auto}
+.ac li{padding:6px 8px;cursor:pointer}.ac li:hover,.ac li.on{background:var(--line)}
+code{font:13px "Courier Prime",monospace;background:var(--line);padding:2px 5px;border-radius:3px;user-select:all}
+.d9{font-size:13px;color:var(--muted);white-space:normal}
+.linkbtn{background:none;border:0;padding:0;height:auto;color:var(--blue);text-decoration:underline;font:inherit;text-transform:none;letter-spacing:0}
 #err{color:var(--red)}
 </style>
 <main>
@@ -50,6 +63,11 @@ p.note{color:var(--muted);font-size:13px;margin:6px 0 0}
   <div class="key eyebrow"><span><i style="background:var(--blue)"></i>Visitors</span><span><i style="background:var(--green)"></i>Holed the Daily</span></div>
 </div>
 <div class="card"><table id="tbl"></table></div>
+<div class="card" id="sched">
+  <div class="eyebrow">Upcoming holes (spoilers)</div>
+  <div class="lock" id="lock" style="margin-top:8px"><input id="pass" type="password" placeholder="Passcode" autocomplete="current-password"><button id="unlock">Show</button></div>
+  <div id="schedBody" hidden></div>
+</div>
 <p class="note">Live from the anonymous counters on the site (no accounts, no personal data). A visitor is one device per Eastern day. Holed and gave up only count the Daily on its own day. Score mix runs eagle to triple bogey or worse. Columns show a dash before that counter existed.</p>
 <p class="note" id="err"></p>
 </main>
@@ -90,4 +108,62 @@ async function load(){
   document.getElementById("stamp").textContent="Updated "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
 }
 document.getElementById("go").onclick=load;load();
+// ---- Upcoming holes. The passcode is a curtain against casual spoilers, not real security: the picks are computable from index.html.
+const PASS="34594e72b63c16ab360d264003d106d7881b9547e9d4db50b923eb4197e47e31",DAYS=30;
+const RUN_URL="https://github.com/dompescamedia/separation-golf/actions/workflows/set-daily.yml";
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let G=null;
+// Run the real game in a hidden iframe so the schedule comes from the same code players get.
+// Its storage lives in memory and its counter hits are swallowed, so this never touches the stats or your own game.
+function game(){if(G)return G;G=fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(src=>new Promise((res,rej)=>{
+  const shim=`<base href="${new URL(".",location.href)}"><script>(()=>{const m={hideWelcome:"1",launch1:"1",player:"1"};
+    const s={getItem:k=>k in m?m[k]:null,setItem:(k,v)=>{m[k]=String(v)},removeItem:k=>{delete m[k]},key:i=>Object.keys(m)[i]??null,get length(){return Object.keys(m).length},clear(){for(const k in m)delete m[k]}};
+    Object.defineProperty(window,"localStorage",{value:s});Object.defineProperty(window,"sessionStorage",{value:s});
+    const f=fetch;window.fetch=(u,o)=>/abacus/.test(String(u))?Promise.resolve(new Response('{"value":0}')):f(u,o)})()<\/script>`;
+  const fr=document.createElement("iframe");fr.hidden=true;fr.srcdoc=src.replace('<meta charset="utf-8">','<meta charset="utf-8">'+shim);
+  document.body.appendChild(fr);const t0=Date.now();
+  (function wait(){let ok=false;try{ok=fr.contentWindow.eval("typeof ID2!=='undefined'&&!!ID2")}catch(e){}
+    if(ok)return res(fr.contentWindow);if(Date.now()-t0>30000)return rej("timeout");setTimeout(wait,150)})()}));return G}
+async function schedule(){const box=document.getElementById("schedBody");box.hidden=false;box.innerHTML='<p class="note">Loading the game data…</p>';
+  let W;try{W=await game()}catch(e){box.innerHTML='<p class="note">The game data did not load. Try again.</p>';G=null;return}
+  const ev=x=>W.eval(x),P=ev("P"),SET=ev("DAILY_SET"),SP=ev("SPECIALS");
+  const info=(a,b)=>{const d=ev("bfs")(a).dist[b];return d>0?`${d} jump${d>1?"s":""} · par ${d+2}`:"no route"};
+  const nm=i=>esc(P[i][0])+` <span class="na">${P[i][1]}–${P[i][2]}</span>`;
+  const today=etDate();let rows="";
+  for(let k=0;k<=DAYS;k++){const d=addDay(today,k),n=Math.round((new Date(d)-new Date(START))/864e5)+1,pl=ev("dailyPlan")(d),[a,b]=pl.pair;
+    const tag=SET[d]?'<span class="tag set">Hand-picked</span>':SP[d.slice(5)]?`<span class="tag">${esc(SP[d.slice(5)].label)}</span>`:'<span class="tag">Generated</span>';
+    rows+=`<tr data-d="${d}"><td>${short(d)} · #${n}${k?"":" (today)"}</td><td>${nm(a)}</td><td>${nm(b)}</td><td class="num">${info(a,b)}</td><td>${tag}</td>
+      <td>${k?`<button class="linkbtn" data-ed="${d}">Edit</button> · `:""}<button class="linkbtn" data-d9="${d}">Daily 9</button></td></tr>`}
+  box.innerHTML=`<p class="note">Today plus the next ${DAYS} days. Edit opens a change you run on GitHub (it goes live in about a minute), or just ask Claude.</p>
+    <div style="overflow-x:auto"><table class="sched"><tr><th>Day</th><th>Tee</th><th>Pin</th><th>Shortest</th><th>Source</th><th></th></tr>${rows}</table></div>`;
+  box.onclick=e=>{const t=e.target,tr=t.closest("tr");if(!tr)return;const nx=tr.nextElementSibling;
+    if(nx&&nx.classList.contains("x")){const same=nx.dataset.k===(t.dataset.ed?"ed":"d9");nx.remove();if(same)return}
+    if(t.dataset.d9){const d=t.dataset.d9,li=[...Array(9)].map((_,i)=>{const [a,b]=ev("roundPlan")(d,i).pair;return `<b>${i+1}.</b> ${esc(P[a][0])} → ${esc(P[b][0])} <span class="na">(${info(a,b)})</span>`});
+      tr.insertAdjacentHTML("afterend",`<tr class="x" data-k="d9"><td colspan="6" class="d9">${li.join(" &nbsp; ")}</td></tr>`)}
+    if(t.dataset.ed)editor(tr,t.dataset.ed)};
+  function editor(tr,d){const [a0,b0]=ev("dailyPlan")(d).pair,pick={a:a0,b:b0};
+    tr.insertAdjacentHTML("afterend",`<tr class="x" data-k="ed"><td colspan="6"><div class="ed">
+      <div class="row"><span class="eyebrow" style="width:30px">Tee</span><div class="ac" data-k="a"><input value="${esc(P[a0][0])}"><ul hidden></ul></div></div>
+      <div class="row"><span class="eyebrow" style="width:30px">Pin</span><div class="ac" data-k="b"><input value="${esc(P[b0][0])}"><ul hidden></ul></div></div>
+      <div class="row out"></div></div></td></tr>`);
+    const ed=tr.nextElementSibling,out=ed.querySelector(".out");
+    const show=()=>{const ch=`${d} ${P[pick.a][3]} ${P[pick.b][3]}`;
+      out.innerHTML=`<span>${info(pick.a,pick.b)}.</span> <span>Copy <code>${ch}</code></span> <button data-copy>Copy</button> <a href="${RUN_URL}" target="_blank" rel="noopener"><button>Run on GitHub</button></a>
+        ${SET[d]?`<span class="na">To undo the hand pick, run it with <code>${d} clear</code></span>`:""}
+        <span class="note" style="flex-basis:100%">On GitHub: Run workflow, paste into the box, then the green Run workflow button.</span>`;
+      out.querySelector("[data-copy]").onclick=e=>{navigator.clipboard&&navigator.clipboard.writeText(ch);e.target.textContent="Copied"}};
+    ed.querySelectorAll(".ac").forEach(ac=>{const inp=ac.querySelector("input"),ul=ac.querySelector("ul");let hits=[];
+      inp.oninput=()=>{const q=inp.value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();if(q.length<2){ul.hidden=true;return}
+        hits=[];for(let i=0;i<P.length;i++){if(P[i][0].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(q))hits.push(i)}
+        hits=hits.sort((x,y)=>P[y][4]-P[x][4]).slice(0,10);
+        ul.innerHTML=hits.map(i=>`<li data-i="${i}">${nm(i)}</li>`).join("");ul.hidden=!hits.length};
+      ul.onclick=e=>{const li=e.target.closest("li");if(!li)return;pick[ac.dataset.k]=+li.dataset.i;inp.value=P[+li.dataset.i][0];ul.hidden=true;show()}});
+    show()}
+}
+async function unlock(){const v=document.getElementById("pass").value;if(await sha(v)!==PASS){document.getElementById("pass").value="";document.getElementById("pass").placeholder="Wrong passcode";return}
+  try{localStorage.setItem("sg-admin",PASS)}catch(e){}document.getElementById("lock").hidden=true;schedule()}
+document.getElementById("unlock").onclick=unlock;document.getElementById("pass").onkeydown=e=>{if(e.key==="Enter")unlock()};
+try{if(localStorage.getItem("sg-admin")===PASS){document.getElementById("lock").hidden=true;schedule()}}catch(e){}
+
 </script>

@@ -1,0 +1,23 @@
+name: Set a Daily
+on:
+  workflow_dispatch:
+    inputs:
+      change:
+        description: 'Paste from the admin page, e.g. "2026-11-20 aaronha01 sotoju01" (or "2026-11-20 clear")'
+        required: true
+permissions:
+  contents: write
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/set_daily.py "$CHANGE"
+        env:
+          CHANGE: ${{ inputs.change }}
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Set Daily: $CHANGE" && git push
+        env:
+          CHANGE: ${{ inputs.change }}
