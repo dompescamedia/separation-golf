@@ -1,0 +1,24 @@
+name: X reply ideas
+# Finds recent X posts about today's tee and pin and drafts replies for Dom to send by hand.
+# Results show on the run's Summary page. It never posts anything.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 15 * * *"
+permissions:
+  contents: read
+jobs:
+  ideas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - working-directory: tools/x_bot
+        run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+      - working-directory: tools/x_bot
+        env:
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          X_SEARCH_MAX: ${{ vars.X_SEARCH_MAX }}
+        run: node reply_ideas.mjs

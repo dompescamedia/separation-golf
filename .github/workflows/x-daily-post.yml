@@ -1,0 +1,27 @@
+name: X daily post
+# Posts the day's Daily hole to the Separation Golf X account.
+# Until the X_* secrets are added in Settings > Secrets and variables > Actions, it only prints the post.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 13 * * *" # 9am Eastern in summer, 8am in winter
+permissions:
+  contents: read
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - working-directory: tools/x_bot
+        run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+      - working-directory: tools/x_bot
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          X_NO_LINK: ${{ vars.X_NO_LINK }}
+        run: node daily_post.mjs
