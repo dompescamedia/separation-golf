@@ -602,14 +602,15 @@ const PLAN={};
 // Hand-picked Dailies by date (Eastern): [tee, pin] as player IDs.
 const DAILY_SET={"2026-10-15":["rosepe01","raleica01"],"2026-10-16":["ryanno01","ohtansh01"],"2026-10-17":["mayswi01","judgeaa01"],
   "2026-10-18":["jacksre01","bettsmo01"],"2026-10-19":["aaronha01","harpebr03"],"2026-10-20":["koufasa01","troutmi01"],
-  "2026-10-21":["clemero01","sotoju01"],"2026-10-22":["mantlmi01","freemfr01"],"2026-10-23":["willite01","yelicch01"],
+  "2026-10-21":["clemero01","sotoju01"],"2026-10-22":["boutoji01","chourja01"],"2026-10-23":["willite01","yelicch01"],
   "2026-10-24":["benchjo01","alonspe01"],"2026-10-25":["brettge01","wittbo02"],"2026-10-26":["musiast01","kershcl01"],
   "2026-10-27":["schmimi01","schwaky01"],"2026-10-28":["berrayo01","lindofr01"],"2026-10-29":["smithoz01","skenepa01"],
   "2026-10-30":["yastrca01","altuvjo01"],"2026-10-31":["dimagjo01","acunaro01"],"2026-11-01":["seaveto01","degroja01"],
   "2026-11-02":["robinfr02","machama01"],"2026-11-03":["bankser01","verlaju01"],"2026-11-04":["kalinal01","skubata01"],
   "2026-11-05":["carewro01","stantmi03"],"2026-11-06":["robinbr01","hendegu01"],"2026-11-07":["carltst01","scherma01"],
   "2026-11-08":["morgajo02","ramirjo01"],"2026-11-09":["fiskca01","bogaexa01"],"2026-11-10":["killeha01","seageco01"],
-  "2026-11-11":["spahnwa01","salech01"],"2026-11-12":["camparo01","rodriju01"]};
+  "2026-11-11":["spahnwa01","salech01"],"2026-11-12":["camparo01","rodriju01"],
+  "2026-11-13":["mantlmi01","freemfr01"]};
 // The Archive stays off until there are past Dailies worth replaying (Dom, Oct 2026).
 const SHOW_ARCHIVE=true;
 // Regular Daily: a well-known player from the past tees off, a relevant current player is the pin.
@@ -748,7 +749,9 @@ function finish(gave){const h=S.hole;h.done=true;
 function term(rel,strokes){if(strokes===1)return"Hole in one";return({"-3":"Albatross","-2":"Eagle","-1":"Birdie","0":"Par","1":"Bogey","2":"Double bogey","3":"Triple bogey"})[rel]||"+"+rel}
 const sym=r=>!r||!r.done?"·":r.gaveUp?"❌":(r.strokes-r.par<=-2?"🦅":r.strokes-r.par===-1?"🐦":r.strokes-r.par===0?"⚪":r.strokes-r.par===1?"🟧":"🟥");
 // Headshots come from MLB's image server by MLB ID (players[i][9]). No ID or no photo shows the silhouette.
-const HS=i=>{const m=P[i][9];return m?`https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/${m}/headshot/67/current`:""};
+// Our own photos for players MLB has no headshot for, keyed by player ID: files live in faces/.
+const FACES={};
+const HS=i=>{if(FACES[P[i][3]])return "faces/"+FACES[P[i][3]];const m=P[i][9];return m?`https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/${m}/headshot/67/current`:""};
 const face=(i,cls)=>{const u=HS(i);return`<span class="face ${cls||""}" aria-hidden="true">${u?`<img src="${u}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span>`};
 const yrs=i=>P[i][1]===P[i][2]?String(P[i][1]):P[i][1]+"–"+P[i][2];
 const tname=ti=>T[ti][0]+" "+TN[T[ti][1]];
