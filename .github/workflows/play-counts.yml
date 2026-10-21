@@ -29,7 +29,7 @@ jobs:
             echo "|---|---|---|---|---|---|"
             n=1; d=2026-10-15; today=$(TZ=America/New_York date +%F)
             while [[ "$d" < "$today" || "$d" == "$today" ]]; do
-              echo "| $d (Daily #$n) | $(get visitors-$d) | $(get plays-$d) | $(get daily-$n-started) | $(get daily-$n-holed) | $(get daily-$n-gaveup) |"
+              echo "| $d (Daily #$((n+24))) | $(get visitors-$d) | $(get plays-$d) | $(get daily-$n-started) | $(get daily-$n-holed) | $(get daily-$n-gaveup) |"
               n=$((n+1)); d=$(date -d "$d +1 day" +%F)
             done
           } > COUNTS.md

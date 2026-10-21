@@ -99,7 +99,8 @@ const $=id=>document.getElementById(id);
 const get=k=>fetch(AB+k).then(r=>r.ok?r.json().then(j=>j.value||0):r.status===404?0:null).catch(()=>null);
 const etDate=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York"}).format(new Date());
 const addDay=(d,n)=>{const t=new Date(d+"T12:00:00Z");t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
-const dnum=d=>Math.round((new Date(d)-new Date(START))/864e5)+1;
+// Counter keys number Dailies from Oct 15 (dnum); players see numbers counted from the Sept 21 archive start (pub).
+const dnum=d=>Math.round((new Date(d)-new Date(START))/864e5)+1,pub=d=>dnum(d)+24;
 const fmt=n=>n==null?'<span class="na">?</span>':n.toLocaleString();
 const dash=n=>n?fmt(n):'<span class="na">–</span>';
 const pct=(a,b)=>b?Math.round(100*a/b)+"%":'<span class="na">–</span>';
@@ -126,17 +127,17 @@ async function load(){
   const t=rows[0]||{},y=rows[1]||{};
   // Hardest and easiest finished Dailies with at least 3 scores, today excluded.
   const rated=rows.slice(1).filter(r=>r.mix.reduce((a,b)=>a+b,0)>=3).sort((a,b)=>b.avg-a.avg);
-  const hl=r=>r?`<b>#${r.n} ${sgn(r.avg)}</b><span class="na">${short(r.d)}</span>`:'<b class="na">–</b>';
+  const hl=r=>r?`<b>#${pub(r.d)} ${sgn(r.avg)}</b><span class="na">${short(r.d)}</span>`:'<b class="na">–</b>';
   $("tiles").innerHTML=[
     ["Devices ever",fmt(V.players)],["Visitors today",fmt(t.vis)],["Holed today",fmt(t.holed)],["Visitors yesterday",fmt(y.vis)],["Holed yesterday",fmt(y.holed)],
     ["Avg visitors / day",fmt(rows.length?Math.round(rows.reduce((s,r)=>s+(r.vis||0),0)/rows.length):0)]
   ].map(([l,v])=>`<div class="tile"><span class="eyebrow">${l}</span><b>${v}</b></div>`).join("")+
     `<div class="tile"><span class="eyebrow">Hardest Daily</span>${hl(rated[0])}</div><div class="tile"><span class="eyebrow">Easiest Daily</span>${hl(rated.length>1?rated[rated.length-1]:null)}</div>`;
   const max=Math.max(1,...rows.map(r=>r.vis||0));
-  $("chart").innerHTML=rows.slice().reverse().map(r=>`<div class="col" title="${r.d}: ${r.vis||0} visitors, ${r.holed||0} holed"><div class="bars"><i style="height:${100*(r.vis||0)/max}%"></i><i class="h" style="height:${100*(r.holed||0)/max}%"></i></div><span>${short(r.d).replace(/^\w+ /,"")}</span></div>`).join("");
+  $("chart").innerHTML=rows.slice().reverse().map(r=>`<div class="col" title="${r.d} (#${pub(r.d)}): ${r.vis||0} visitors, ${r.holed||0} holed"><div class="bars"><i style="height:${100*(r.vis||0)/max}%"></i><i class="h" style="height:${100*(r.holed||0)/max}%"></i></div><span>${short(r.d).replace(/^\w+ /,"")}</span></div>`).join("");
   $("tbl").innerHTML=`<tr><th>Day</th><th>Visitors</th><th>New</th><th>Came back</th><th>Games played</th><th>Started Daily</th><th>Holed</th><th>Gave up</th><th>Holed / started</th><th>Avg vs par</th><th>Score mix</th></tr>`+
     rows.map(r=>{const tot=r.mix.reduce((a,b)=>a+b,0);
-      return `<tr><td>${short(r.d)} · Daily #${r.n}</td><td>${fmt(r.vis)}</td><td>${dash(r.nw)}</td><td>${dash(r.back)}</td><td>${dash(r.plays)}</td><td>${dash(r.start)}</td><td>${fmt(r.holed)}</td><td>${dash(r.gave)}</td><td>${r.start?pct(r.holed||0,r.start):pct(r.holed||0,r.vis)}</td><td>${r.avg==null?'<span class="na">–</span>':sgn(r.avg)}</td>`+
+      return `<tr><td>${short(r.d)} · Daily #${pub(r.d)}</td><td>${fmt(r.vis)}</td><td>${dash(r.nw)}</td><td>${dash(r.back)}</td><td>${dash(r.plays)}</td><td>${dash(r.start)}</td><td>${fmt(r.holed)}</td><td>${dash(r.gave)}</td><td>${r.start?pct(r.holed||0,r.start):pct(r.holed||0,r.vis)}</td><td>${r.avg==null?'<span class="na">–</span>':sgn(r.avg)}</td>`+
       `<td>${tot?`<span class="mix" title="${MIX.map(([l],i)=>l+" "+r.mix[i]).join(", ")}">${r.mix.map((c,i)=>c?`<i style="width:${100*c/tot}%;background:${MIX[i][1]}"></i>`:"").join("")}</span>`:'<span class="na">–</span>'}</td></tr>`}).join("");
   // Running total: today's total minus the new devices counted after each day. Only meaningful once new- counting began.
   const asc=rows.slice().reverse(),first=asc.findIndex(r=>r.nw>0);
@@ -145,7 +146,7 @@ async function load(){
     const sl=asc.slice(first),mx=Math.max(...tot.slice(first));
     $("spark").innerHTML=sl.map((r,i)=>`<i title="${r.d}: ${tot[first+i]}" style="height:${100*tot[first+i]/mx}%"></i>`).join("");
     $("sparkNote").textContent=`${tot[first]} on ${short(asc[first].d)} to ${V.players} now.`}
-  $("detDay").innerHTML=rows.map(r=>`<option value="${r.d}">${short(r.d)} · Daily #${r.n}</option>`).join("");details();
+  $("detDay").innerHTML=rows.map(r=>`<option value="${r.d}">${short(r.d)} · Daily #${pub(r.d)}</option>`).join("");details();
   $("stamp").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
 }
 // One day's deeper counters: modes, Daily 9, hints, solve time, challenges.
@@ -207,9 +208,9 @@ async function schedule(){const box=$("schedBody");box.hidden=false;box.innerHTM
       ul.innerHTML=hits.sort((x,y)=>P[y][4]-P[x][4]).slice(0,10).map(i=>`<li data-i="${i}">${nm(i)}</li>`).join("");ul.hidden=!hits.length};
     ul.onclick=e=>{const li=e.target.closest("li");if(!li)return;pick[ac.dataset.k]=+li.dataset.i;inp.value=P[+li.dataset.i][0];ul.hidden=true;onPick()}})}
   let rows="";const opts=[];
-  for(let k=0;k<=DAYS;k++){const d=addDay(today,k),n=dnum(d),[a,b]=plan(d).pair;opts.push(`<option value="${d}"${k===1?" selected":""}>${short(d)} · Daily #${n}${k?"":" (today)"}</option>`);
+  for(let k=0;k<=DAYS;k++){const d=addDay(today,k),n=dnum(d),[a,b]=plan(d).pair;opts.push(`<option value="${d}"${k===1?" selected":""}>${short(d)} · Daily #${pub(d)}${k?"":" (today)"}</option>`);
     const tag=SET[d]?'<span class="tag set">Hand-picked</span>':SP[d.slice(5)]?`<span class="tag">${esc(SP[d.slice(5)].label)}</span>`:'<span class="tag">Generated</span>';
-    rows+=`<tr data-d="${d}"><td>${short(d)} · #${n}${k?"":" (today)"}</td><td>${nm(a)}</td><td>${nm(b)}</td><td class="num">${info(a,b)}</td><td>${tag}</td><td class="warn">${warns(d,a,b)}</td>
+    rows+=`<tr data-d="${d}"><td>${short(d)} · #${pub(d)}${k?"":" (today)"}</td><td>${nm(a)}</td><td>${nm(b)}</td><td class="num">${info(a,b)}</td><td>${tag}</td><td class="warn">${warns(d,a,b)}</td>
       <td>${k?`<button class="linkbtn" data-ed="${d}">Edit</button> · `:""}<button class="linkbtn" data-d9="${d}">Daily 9</button> · <button class="linkbtn" data-post="${d}">Post</button></td></tr>`}
   const frOpts=FR.map((f,i)=>[f,i]).filter(([f])=>f[1]&&f[3]>=2026).sort((x,y)=>x[0][0].localeCompare(y[0][0])).map(([f,i])=>`<option value="${i}">${esc(f[0])}</option>`).join("");
   box.innerHTML=`
@@ -228,7 +229,7 @@ async function schedule(){const box=$("schedBody");box.hidden=false;box.innerHTM
     <div class="lock"><select id="tpDay"></select><button id="tpGo">Show</button></div>
     <div id="tpOut"></div>`;
   // X composer
-  const xFill=()=>{const d=$("xDay").value,[a,b]=plan(d).pair,pl=plan(d);$("xText").value=postText(dnum(d),pl.label,P[a][0],P[b][0],best(a,b)+2,$("xLink").checked?BASE:"");xCount()};
+  const xFill=()=>{const d=$("xDay").value,[a,b]=plan(d).pair,pl=plan(d);$("xText").value=postText(ev("dayNum")(d),pl.label,P[a][0],P[b][0],best(a,b)+2,$("xLink").checked?BASE:"");xCount()};
   const xCount=()=>{const t=$("xText").value,len=[...t.replace(/https?:\/\/\S+/g,"x".repeat(23))].length;$("xCount").textContent=`${len}/280`};
   $("xDay").onchange=xFill;$("xLink").onchange=xFill;$("xText").oninput=xCount;xFill();
   $("xPost").onclick=()=>xOpen($("xText").value);
@@ -257,7 +258,7 @@ async function schedule(){const box=$("schedBody");box.hidden=false;box.innerHTM
       :'<p class="note">No 3 to 5 jump pairs found for this team. Try another, or ask Claude.</p>';
     $("thOut").onclick=e=>{const u=e.target.dataset.use;if(!u)return;const [a,b]=u.split(",").map(Number);$("thUse").innerHTML=changeBox($("thDay").value,a,b)}};
   // Most-picked: the counters are per player, so ask about the likely ones (on an eagle or birdie route), best known first.
-  $("tpDay").innerHTML=[...Array(Math.min(WINDOW,dnum(today)))].map((_,k)=>{const d=addDay(today,-k);return `<option value="${d}">${short(d)} · Daily #${dnum(d)}${k?"":" (today)"}</option>`}).join("");
+  $("tpDay").innerHTML=[...Array(Math.min(WINDOW,dnum(today)))].map((_,k)=>{const d=addDay(today,-k);return `<option value="${d}">${short(d)} · Daily #${pub(d)}${k?"":" (today)"}</option>`}).join("");
   $("tpGo").onclick=async()=>{const d=$("tpDay").value,n=dnum(d),[a,b]=plan(d).pair,da=dist(a),db=dist(b),bst=da[b];$("tpOut").innerHTML='<p class="note">Counting…</p>';
     const cand=[];for(let i=0;i<P.length;i++)if(i!==a&&i!==b&&da[i]>0&&db[i]>0&&da[i]+db[i]<=bst+1)cand.push(i);
     const top=cand.sort((x,y)=>P[y][4]-P[x][4]).slice(0,150),ak=i=>P[i][3].replace(/[^A-Za-z0-9_.-]/g,"_");
