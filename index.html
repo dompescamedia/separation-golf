@@ -727,7 +727,7 @@ function bump(h,k){if(h.kind==="range")return;const was=h.strokes;h.n=(h.n??h.st
   if(k>0&&was<MAXS&&h.strokes===MAXS&&!h.done)toast("Stroke limit. Your score stays at 10, so finish if you want to")}
 function jump(p,t){const h=S.hole;if(h.done)return;
   h.trail.push({p,t});bump(h,1);S.open=-1;S.filter="";S.tq="";h.hintTeam=-1;
-  if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"});if(p===h.b&&h.kind==="daily")openSharePop()}
+  if(p===h.b)finish(false);save();render();window.scrollTo({top:0,behavior:"smooth"});if(p===h.b&&h.kind==="daily")openSharePop();if(p===h.b&&roundJustDone(h))openRoundPop(h.meta.date)}
 function back(){const h=S.hole;if(h.done||h.trail.length<2)return;const prev=h.trail[h.trail.length-2];
   h.trail.push({p:prev.p,t:-2});bump(h,1);S.open=-1;h.hintTeam=-1;save();render()}
 function hint(){const h=S.hole;if(h.done)return;const u=cur();const du=h.distT[u];
@@ -738,7 +738,7 @@ const mullLeft=()=>{const h=S.hole;return h.kind==="round"?!roundMull(h.meta.dat
 function mulligan(){const h=S.hole;if(h.kind==="daily"||h.done||h.trail.length<2||!mullLeft())return;
   h.trail.pop();bump(h,-1);h.mullUsed=true;if(h.kind==="round")store.set("mull:"+h.meta.date,{i:h.meta.idx});
   S.open=-1;h.hintTeam=-1;save();render();toast("Mulligan taken. That move never happened")}
-function giveUp(){finish(true);save();render();if(S.hole.kind==="daily")openSharePop()}
+function giveUp(){finish(true);save();render();if(S.hole.kind==="daily")openSharePop();if(roundJustDone(S.hole))openRoundPop(S.hole.meta.date)}
 // One-time wipe of games saved before launch night, so every phone starts at Daily #1.
 function launchReset(){if(store.get("launch1"))return;
   try{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^(daily|round|mull):/.test(k))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k))}catch(e){}
@@ -1014,17 +1014,65 @@ async function routeImage(h){const W=1080,H=1350,cv=document.createElement("canv
     stats.forEach(([l,v],i)=>{const cx=stats.length===1?W/2:W/2+(i?1:-1)*230;g.fillStyle=ink;g.font=`700 58px ${BO}`;g.fillText(v,cx,H-165);g.fillStyle=muted;g.font=`700 22px ${MO}`;g.fillText(l,cx,H-238)})}
   g.fillStyle=red;g.font=`700 34px ${MO}`;g.fillText("SEPARATIONGOLF.COM",W/2,H-110);
   return new Promise(r=>cv.toBlob(r,"image/png"))}
+// Open X with the post ready (Dom, 2026-10-21). Phones try the X app first (twitter://post), then fall back to the web
+// composer if the app didn't take over. On a computer it's always the web composer, which asks you to sign in if you aren't.
+function xOpen(text){const enc=encodeURIComponent(text),web="https://x.com/intent/post?text="+enc;
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){let left=false;const v=()=>{if(document.hidden)left=true};document.addEventListener("visibilitychange",v);
+    location.href="twitter://post?message="+enc;setTimeout(()=>{document.removeEventListener("visibilitychange",v);if(!left&&!document.hidden)location.href=web},1600)}
+  else window.open(web,"_blank","noopener")}
+// Share a made image: phones get the share sheet, computers copy it (or download it).
+async function shareBlob(blob,name,text){if(!blob)return toast("Couldn't make the image");const file=new File([blob],name,{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})&&matchMedia("(pointer:coarse)").matches){try{await navigator.share({files:[file],text})}catch(e){}return}
+  try{await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Image copied. Paste it into your post");return}catch(e){}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("Image saved")}
+// Daily 9 (Dom, 2026-10-21): when the ninth hole is done, a pop-up with the scorecard image and the total WAR of all nine routes.
+function roundWar(d){let t=0;for(let i=0;i<9;i++){const r=roundRec(d,i);if(r&&r.done&&!r.gaveUp&&r.trail)t+=routeWar(r.trail.map(st=>st.p))}return t}
+function roundXText(d){const res=[...Array(9)].map((_,i)=>roundRec(d,i)),{st,par}=roundTotals(res),m=roundMull(d);
+  return[`Separation Golf Daily 9 #${dayNum(d)} ⛳ ${st} (${relTxt(st-par)})${m?` · mulligan on ${m.i+1}`:""}`,res.map(sym).join(""),`${roundWar(d).toFixed(1)} total WAR`,`Play: ${BASE_URL.replace(/\/$/,"")} @SeparationGolf`].join("\n")}
+async function roundImage(d){const W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");if(!g.roundRect)g.roundRect=function(x,y,w,h){this.rect(x,y,w,h)};
+  const cs=getComputedStyle(document.documentElement),v=(k,dd)=>cs.getPropertyValue(k).trim()||dd;
+  const bg=v("--bg","#ede1c6"),card=v("--card","#f8f0dc"),ink=v("--ink","#1d2a44"),muted=v("--muted","#6d6450"),red=v("--red","#b0302a"),line=v("--line","#c9b68e");
+  try{await Promise.all(["120px Yellowtail","700 40px Bitter","700 32px 'Courier Prime'"].map(f=>document.fonts.load(f)))}catch(e){}
+  const SC="Yellowtail,'Brush Script MT',cursive",BO="Bitter,Georgia,serif",MO="'Courier Prime','Courier New',monospace";
+  const res=[...Array(9)].map((_,i)=>roundRec(d,i)),{st,par}=roundTotals(res),m=roundMull(d);
+  g.fillStyle=bg;g.fillRect(0,0,W,H);g.fillStyle=card;g.strokeStyle=ink;g.lineWidth=6;g.beginPath();g.roundRect(40,40,W-80,H-80,18);g.fill();g.stroke();
+  g.textAlign="center";g.fillStyle=ink;g.font=`96px ${SC}`;g.fillText("Separation Golf",W/2,170);
+  g.font=`700 30px ${MO}`;g.fillStyle=muted;g.fillText(`DAILY 9 #${dayNum(d)} · ${fmtDate(d).toUpperCase()}`,W/2,225);
+  g.fillStyle=ink;g.font=`700 190px ${BO}`;g.fillText(String(st),W/2,450);
+  g.fillStyle=red;g.font=`110px ${SC}`;g.fillText(relTxt(st-par)==="E"?"Even par":relTxt(st-par)+" to par",W/2,575);
+  // scorecard: hole / par / score, birdies circled, bogeys boxed like a real card
+  const x0=110,cw=(W-220)/10,rows=[["HOLE",i=>String(i+1),"TOT"],["PAR",i=>res[i]?String(res[i].par):"",String(par)],["SCORE",null,String(st)]],y0=660,rh=96;
+  g.strokeStyle=ink;g.lineWidth=3;g.beginPath();g.roundRect(x0,y0,W-220,rh*3,8);g.stroke();
+  for(let r=1;r<3;r++){g.beginPath();g.moveTo(x0,y0+r*rh);g.lineTo(W-110,y0+r*rh);g.stroke()}
+  for(let c=1;c<10;c++){g.lineWidth=c===9?4:2;g.beginPath();g.moveTo(x0+c*cw+(c===0?0:0),y0);g.lineTo(x0+c*cw,y0+rh*3);g.stroke()}
+  rows.forEach(([lab,f,tot],r)=>{const cy=y0+r*rh+rh/2;
+    for(let i=0;i<9;i++){const cx=x0+i*cw+cw/2;
+      if(r<2){g.fillStyle=r?ink:muted;g.font=`700 ${r?38:30}px ${r?BO:MO}`;g.textBaseline="middle";g.fillText(f(i),cx,cy)}
+      else{const rr=res[i];if(!rr||!rr.done)continue;const dd=rr.strokes-rr.par;g.textBaseline="middle";g.font=`700 40px ${BO}`;g.fillStyle=rr.gaveUp?red:ink;g.fillText(rr.gaveUp?"X":String(rr.strokes),cx,cy+2);
+        g.strokeStyle=dd<0?red:ink;g.lineWidth=3;
+        if(!rr.gaveUp&&dd<0){g.beginPath();g.arc(cx,cy,30,0,7);g.stroke();if(dd<=-2){g.beginPath();g.arc(cx,cy,37,0,7);g.stroke()}}
+        if(!rr.gaveUp&&dd>0){g.strokeRect(cx-29,cy-29,58,58);if(dd>=2)g.strokeRect(cx-36,cy-36,72,72)}}}
+    g.fillStyle=r===0?muted:ink;g.font=`700 ${r?40:28}px ${r?BO:MO}`;g.fillText(tot,x0+9*cw+cw/2,cy)});
+  g.textBaseline="alphabetic";
+  g.fillStyle=muted;g.font=`700 24px ${MO}`;g.fillText("HOLE · PAR · SCORE",W/2,y0-22);
+  g.strokeStyle=line;g.lineWidth=3;g.beginPath();g.moveTo(110,H-280);g.lineTo(W-110,H-280);g.stroke();
+  g.fillStyle=muted;g.font=`700 24px ${MO}`;g.fillText("TOTAL WAR",W/2,H-232);g.fillStyle=ink;g.font=`700 64px ${BO}`;g.fillText(roundWar(d).toFixed(1),W/2,H-165);
+  if(m){g.fillStyle=muted;g.font=`400 26px ${BO}`;g.fillText(`Mulligan on hole ${m.i+1}`,W/2,H-125)}
+  g.fillStyle=red;g.font=`700 34px ${MO}`;g.fillText("SEPARATIONGOLF.COM",W/2,H-80);
+  return new Promise(r=>cv.toBlob(r,"image/png"))}
+function openRoundPop(d){openModal(`<h2 class="mtitle" id="mtitle">Round complete</h2><div class="spimg" id="spimg"><span class="small muted">Making your scorecard…</span></div>
+  <div class="xshare pop"><div class="actions"><button class="btn xbtn" id="rppost">${X_ICO} Post to X</button><button class="btn xbtn" id="rpimg">Share image</button><button class="btn xbtn" id="rpcopy">Copy text</button></div></div><button class="btn" id="spmore">See the scorecard</button>`);
+  roundImage(d).then(b=>{const box=$("#spimg");if(!b||!box)return;if(SP_URL)URL.revokeObjectURL(SP_URL);SP_URL=URL.createObjectURL(b);box.innerHTML=`<img src="${SP_URL}" alt="Your Daily 9 scorecard">`});
+  const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};on("rppost",()=>xOpen(roundXText(d)));on("rpcopy",()=>copy(roundXText(d)));
+  on("rpimg",async()=>shareBlob(await roundImage(d),`separation-golf-daily9-${dayNum(d)}.png`,roundXText(d)));on("spmore",()=>{closeModal();window.scrollTo({top:0,behavior:"smooth"})})}
+const roundJustDone=h=>h.kind==="round"&&roundTotals(roundState()).done===9;
 // Daily finish pop-up (Dom, 2026-10-21), like Immaculate Grid: the share image first, with the share buttons; close it for the full result.
 let SP_URL="";
 async function sharePopImg(){const h=S.hole,box=$("#spimg");if(!box)return;const blob=await routeImage(h);if(!blob||!$("#spimg"))return;if(SP_URL)URL.revokeObjectURL(SP_URL);SP_URL=URL.createObjectURL(blob);box.innerHTML=`<img src="${SP_URL}" alt="Your route as a share card">`}
 function openSharePop(){const h=S.hole;openModal(`<h2 class="mtitle" id="mtitle">${h.gaveUp?"Here's your card":"Holed out"}</h2><div class="spimg" id="spimg"><span class="small muted">Making your card…</span></div>${xShareHTML(h,true)}<button class="btn" id="spmore">See the full result</button>`);
-  sharePopImg();const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};on("spimg2",shareImage);on("sppost",()=>window.open("https://x.com/intent/post?text="+encodeURIComponent(xText(S.hole)),"_blank","noopener"));on("spcopy",()=>copy(shareText()));on("spmore",closeModal);
+  sharePopImg();const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};on("spimg2",shareImage);on("sppost",()=>xOpen(xText(S.hole)));on("spcopy",()=>copy(shareText()));on("spmore",closeModal);
   const xs=$("#spspoil");if(xs)xs.onchange=()=>{S.hole.xh=xs.checked;if(xLive(S.hole))store.set("xspoil",xs.checked);sharePopImg();render()}}
-async function shareImage(){const h=S.hole,blob=await routeImage(h);if(!blob)return toast("Couldn't make the image");
-  const file=new File([blob],`separation-golf${h.kind==="daily"?"-daily-"+h.meta.n:""}.png`,{type:"image/png"});
-  if(navigator.canShare&&navigator.canShare({files:[file]})&&matchMedia("(pointer:coarse)").matches){try{await navigator.share({files:[file],text:xText(h)})}catch(e){}return}
-  try{await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Image copied. Paste it into your post");return}catch(e){}
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("Image saved")}
+async function shareImage(){const h=S.hole;shareBlob(await routeImage(h),`separation-golf${h.kind==="daily"?"-daily-"+h.meta.n:""}.png`,xText(h))}
 function shareText(){
   const h=S.hole,rel=h.strokes-h.par;
   const head=h.kind==="daily"?`⛳ Separation Golf · Daily #${h.meta.n}${h.hard?" · Hard mode 🔥":""}`:h.kind==="round"?`⛳ Separation Golf · Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:`⛳ Separation Golf`;
@@ -1044,7 +1092,7 @@ function roundCardHTML(){
     <div class="scwrap"><table class="sc"><colgroup><col class="lab">${res.map(()=>"<col>").join("")}<col class="totc"></colgroup><tr><td>Hole</td>${res.map((r,i)=>`<th class="${i===cur?"curh":""}"><button class="hb" data-rh="${i}" ${can(i)?"":"disabled"} aria-label="Hole ${i+1}">${i+1}</button></th>`).join("")}<th class="tot">Tot</th></tr>
     <tr><td>Par</td>${res.map((r,i)=>`<td class="${i===cur?"curh":""}">${r?r.par:""}</td>`).join("")}<td class="tot">${done?par:""}</td></tr>
     <tr><td>Score</td>${res.map((r,i)=>`<td class="${i===cur?"curh":""}">${mk(r)}</td>`).join("")}<td class="tot">${done?st:""}</td></tr></table></div>`;
-  if(done===9)s+=`<div class="rdone">Round complete: ${st} (${relTxt(st-par)})</div>${nextInHTML()}<div class="sharebox" id="roundbox">${esc(roundShare(res,st,par))}</div><div class="actions"><button class="btn primary" id="roundshare">Copy scorecard</button></div>`;
+  if(done===9)s+=`<div class="rdone">Round complete: ${st} (${relTxt(st-par)})</div>${nextInHTML()}<div class="sharebox" id="roundbox">${esc(roundShare(res,st,par))}</div><div class="actions"><button class="btn primary" id="roundshare">Copy scorecard</button><button class="btn xbtn" id="roundpop">${X_ICO} Share scorecard</button></div>`;
   return s+`</section>`;
 }
 function roundShare(res,st,par){const m=roundMull(S.rd.date);return[`⛳ Separation Golf · Daily 9 #${dayNum(S.rd.date)}`,`${st} strokes (${relTxt(st-par)})${m?` · mulligan on ${m.i+1}`:""}`,res.map(sym).join(""),BASE_URL].join("\n")}
@@ -1305,8 +1353,9 @@ function bind(){bindCards();fillCrowd();
   document.querySelectorAll("[data-peek]").forEach(b=>b.onclick=()=>{S.peek[b.dataset.peek]=!S.peek[b.dataset.peek];render()});
   on("share",()=>copy(S.hole.kind==="run"?runShare():shareText()));
   on("ximg2",shareImage);
-  on("xpost",()=>window.open("https://x.com/intent/post?text="+encodeURIComponent(xText(S.hole)),"_blank","noopener"));
+  on("xpost",()=>xOpen(xText(S.hole)));
   const xs=$("#xspoil");if(xs)xs.onchange=()=>{S.hole.xh=xs.checked;if(xLive(S.hole))store.set("xspoil",xs.checked)};
+  on("roundpop",()=>openRoundPop(S.rd.date));
   on("roundshare",()=>{const res=roundState(),t=roundTotals(res);copy(roundShare(res,t.st,t.par),"roundbox")});
   on("chal",()=>copy(challengeMsg()));
   on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
