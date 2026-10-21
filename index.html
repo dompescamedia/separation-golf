@@ -961,7 +961,7 @@ function rivalHTML(){const h=S.hole,r=h.rival;if(!r)return"";
 // Post to X (Dom, 2026-10-21), Immaculate Grid style: score, your route, its WAR, Deep Cut rank (top 500 only) and a link to play.
 // On a live Daily or Daily 9 the players in between show as initials so the post doesn't give the answer away (switch remembered).
 const xLive=h=>(h.kind==="daily"||h.kind==="round")&&!h.meta.late;
-const xHide=h=>xLive(h)&&store.get("xspoil")!==false;
+const xHide=h=>h.xh!==undefined?h.xh:xLive(h)&&store.get("xspoil")!==false;
 const initials=p=>P[p][0].split(/\s+/).filter(w=>/^[A-Za-zÀ-ÿ]/.test(w)).map(w=>w[0].toUpperCase()+".").join("");
 function xText(h){const rel=h.strokes-h.par,ids=h.trail.map(st=>st.p),hide=xHide(h);
   const head=(h.kind==="daily"?`Separation Golf Daily #${h.meta.n}`:h.kind==="round"?`Separation Golf Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:"Separation Golf")+(h.gaveUp?" · Picked up":` ⛳ ${term(rel,h.strokes)} (${h.strokes} on a par ${h.par})`)+(h.hard?" · Hard mode 🔥":"");
@@ -973,7 +973,40 @@ function xText(h){const rel=h.strokes-h.par,ids=h.trail.map(st=>st.p),hide=xHide
   const st=h.kind==="daily"&&!h.meta.late?dailyStreak().streak:0;
   return [head,route,h.gaveUp?"":`${war.toFixed(1)} WAR in between${rk}`,st>1?`🔥 ${st}-day streak`:"",`Play: ${BASE_URL.replace(/\/$/,"")} @SeparationGolf`].filter(Boolean).join("\n")}
 const X_ICO=`<svg viewBox="0 0 24 24" aria-hidden="true" width="15" height="15" fill="currentColor"><path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.3L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg>`;
-function xShareHTML(h){return`<div class="xshare">${xLive(h)&&!h.gaveUp?`<label class="chk small"><input type="checkbox" id="xspoil" ${xHide(h)?"checked":""}> Hide the players in between (no spoilers)</label>`:""}<button class="btn xbtn" id="xpost">${X_ICO} Post to X</button></div>`}
+function xShareHTML(h){return`<div class="xshare">${!h.gaveUp?`<label class="chk small"><input type="checkbox" id="xspoil" ${xHide(h)?"checked":""}> Hide the players in between (no spoilers)</label>`:""}<div class="actions"><button class="btn xbtn" id="xpost">${X_ICO} Post to X</button><button class="btn" id="ximg">Share image</button></div></div>`}
+// Share image (Dom, 2026-10-21): a 1080x1350 scorecard of your route in the current colors. With "Hide the players in between"
+// on, the middle players and their teams are blacked out. Phones get the share sheet (the image plus the post text);
+// elsewhere the image is copied to the clipboard, or downloaded if that's not allowed.
+async function routeImage(h){const W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");if(!g.roundRect)g.roundRect=function(x,y,w,h){this.rect(x,y,w,h)};
+  const cs=getComputedStyle(document.documentElement),v=(k,d)=>cs.getPropertyValue(k).trim()||d;
+  const bg=v("--bg","#ede1c6"),card=v("--card","#f8f0dc"),ink=v("--ink","#1d2a44"),muted=v("--muted","#6d6450"),red=v("--red","#b0302a"),line=v("--line","#c9b68e");
+  try{await Promise.all(["120px Yellowtail","700 40px Bitter","400 40px Bitter","700 32px 'Courier Prime'"].map(f=>document.fonts.load(f)))}catch(e){}
+  const SC="Yellowtail,'Brush Script MT',cursive",BO="Bitter,Georgia,serif",MO="'Courier Prime','Courier New',monospace";
+  g.fillStyle=bg;g.fillRect(0,0,W,H);g.fillStyle=card;g.strokeStyle=ink;g.lineWidth=6;g.beginPath();g.roundRect(40,40,W-80,H-80,18);g.fill();g.stroke();
+  g.textAlign="center";g.fillStyle=ink;g.font=`96px ${SC}`;g.fillText("Separation Golf",W/2,170);
+  const sub=h.kind==="daily"?`DAILY #${h.meta.n} · ${fmtDate(h.meta.date).toUpperCase()}`:h.kind==="round"?`DAILY 9 #${h.meta.n} · HOLE ${h.meta.idx+1}`:h.kind==="endless"?"ENDLESS":"CUSTOM";
+  g.font=`700 30px ${MO}`;g.fillStyle=muted;g.fillText(sub+(h.hard?" · HARD MODE":""),W/2,225);
+  const rel=h.strokes-h.par;g.fillStyle=red;g.font=`150px ${SC}`;g.fillText(h.gaveUp?"Picked up":term(rel,h.strokes),W/2,385);
+  g.fillStyle=ink;g.font=`400 38px ${BO}`;g.fillText(h.gaveUp?`Par ${h.par}`:`${h.strokes} stroke${h.strokes>1?"s":""} on a par ${h.par}`,W/2,478);
+  g.strokeStyle=line;g.lineWidth=3;g.beginPath();g.moveTo(110,515);g.lineTo(W-110,515);g.stroke();
+  const steps=h.gaveUp?[{p:h.a,t:-1},{p:h.b,t:-1}]:h.trail,n=steps.length,hide=xHide(h),top=550,room=H-300-top,lh=Math.min(112,room/n),big=Math.min(46,lh*.48),small=Math.min(28,lh*.3);
+  g.textAlign="left";
+  steps.forEach((st,i)=>{const y=top+i*lh+big,mid=i>0&&i<n-1,x=150;
+    g.fillStyle=muted;g.font=`700 ${small+4}px ${MO}`;g.textAlign="right";g.fillText(String(i+1),x-24,y);g.textAlign="left";
+    const name=P[st.p][0],tm=st.t>=0&&!(hide&&i===n-1)?tname(st.t):"";
+    if(mid&&hide){g.font=`700 ${big}px ${BO}`;g.fillStyle=ink;g.beginPath();g.roundRect(x,y-big*.82,Math.max(160,g.measureText(name).width),big*.98,4);g.fill();
+      if(tm&&lh>70){g.font=`400 ${small}px ${BO}`;g.globalAlpha=.35;g.beginPath();g.roundRect(x,y+small*.45,Math.max(120,g.measureText(tm).width),small*.95,3);g.fill();g.globalAlpha=1}}
+    else{g.fillStyle=ink;g.font=`700 ${big}px ${BO}`;g.fillText(name,x,y);if(tm&&lh>70){g.fillStyle=muted;g.font=`400 ${small}px ${BO}`;g.fillText(tm,x,y+small*1.3)}}});
+  g.textAlign="center";g.strokeStyle=line;g.beginPath();g.moveTo(110,H-250);g.lineTo(W-110,H-250);g.stroke();
+  if(!h.gaveUp){const war=steps.slice(1,-1).reduce((t,st)=>t+(P[st.p][10]||0),0)/10,rk=h.kind==="daily"&&h.rk&&!h.rk.over?`  ·  Deep Cut ${rankTxt(h.rk)}`:"";
+    g.fillStyle=ink;g.font=`700 40px ${BO}`;g.fillText(`${war.toFixed(1)} WAR in between${rk}`,W/2,H-180)}
+  g.fillStyle=red;g.font=`700 34px ${MO}`;g.fillText("SEPARATIONGOLF.COM",W/2,H-110);
+  return new Promise(r=>cv.toBlob(r,"image/png"))}
+async function shareImage(){const h=S.hole,blob=await routeImage(h);if(!blob)return toast("Couldn't make the image");
+  const file=new File([blob],`separation-golf${h.kind==="daily"?"-daily-"+h.meta.n:""}.png`,{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})&&matchMedia("(pointer:coarse)").matches){try{await navigator.share({files:[file],text:xText(h)})}catch(e){}return}
+  try{await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Image copied. Paste it into your post");return}catch(e){}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("Image saved")}
 function shareText(){
   const h=S.hole,rel=h.strokes-h.par;
   const head=h.kind==="daily"?`⛳ Separation Golf · Daily #${h.meta.n}${h.hard?" · Hard mode 🔥":""}`:h.kind==="round"?`⛳ Separation Golf · Daily 9 #${h.meta.n} · Hole ${h.meta.idx+1}`:`⛳ Separation Golf`;
@@ -1253,8 +1286,9 @@ function bind(){bindCards();fillCrowd();
   on("hint",hint);on("back",back);on("mull",mulligan);on("giveup",giveUp);
   document.querySelectorAll("[data-peek]").forEach(b=>b.onclick=()=>{S.peek[b.dataset.peek]=!S.peek[b.dataset.peek];render()});
   on("share",()=>copy(S.hole.kind==="run"?runShare():shareText()));
+  on("ximg",shareImage);
   on("xpost",()=>window.open("https://x.com/intent/post?text="+encodeURIComponent(xText(S.hole)),"_blank","noopener"));
-  const xs=$("#xspoil");if(xs)xs.onchange=()=>store.set("xspoil",xs.checked);
+  const xs=$("#xspoil");if(xs)xs.onchange=()=>{S.hole.xh=xs.checked;if(xLive(S.hole))store.set("xspoil",xs.checked)};
   on("roundshare",()=>{const res=roundState(),t=roundTotals(res);copy(roundShare(res,t.st,t.par),"roundbox")});
   on("chal",()=>copy(challengeMsg()));
   on("next",()=>{if(S.hole.kind==="endless")startEndless();else{S.custom.a=null;S.custom.b=null;S.hole=null}render()});
