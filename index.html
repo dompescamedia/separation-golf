@@ -179,6 +179,8 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .chip.locked{opacity:.4;text-decoration:line-through;cursor:not-allowed}
 .chip.hint{box-shadow:0 0 0 2px var(--pin)}
 .roster{border:2px solid var(--ink);border-radius:4px;background:var(--bg);padding:10px;display:flex;flex-direction:column;gap:8px}
+.rtools{display:flex;flex-wrap:wrap;gap:6px}.rtools input{flex:1 1 170px;min-width:0}
+.rtools select{flex:1 1 130px;min-height:44px;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:4px;padding:0 8px}
 .roster input,.tsearch input,.search input{width:100%;border:1.5px solid var(--line);background:var(--card);border-radius:4px;padding:9px 10px;font:inherit;color:var(--ink)}
 .plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px;max-height:340px;overflow:auto}
 .pbtn{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:3px;padding:6px 9px;min-width:0}
@@ -839,13 +841,22 @@ function teammateResults(u,seen){const q=norm(S.tq.trim());if(q.length<2)return"
   out.sort((x,y)=>P[x[0]][6].localeCompare(P[y[0]][6])||T[x[1]][0]-T[y[1]][0]);
   if(!out.length)return`<div class="small muted">No teammate matches “${esc(S.tq)}”.</div>`;
   return`<div class="plist">${out.slice(0,40).map(([p,ti])=>pbtn(p,ti,seen,esc(tname(ti))+(ageIn(p,ti)?" · age "+ageIn(p,ti):""))).join("")}</div>`}
+// Roster sort (Dom): a dropdown next to the roster search; the choice is remembered across games and days.
+const RSORTS=[["name","Name A–Z"],["games","Most games"],["war","Career WAR"],["young","Youngest"],["old","Oldest"],["long","Longest career"],["recent","Most recent"]];
+let RSORT=(k=>RSORTS.some(o=>o[0]===k)?k:"name")(store.get("rsort"));
+const rsortHTML=()=>`<select id="rsort" aria-label="Sort roster">${RSORTS.map(([k,l])=>`<option value="${k}"${k===RSORT?" selected":""}>Sort: ${l}</option>`).join("")}</select>`;
+function sortRoster(ps,ti){const byName=(x,y)=>P[x][6].localeCompare(P[y][6]),bd=p=>P[p][7]?P[p][7]*10000+(P[p][8]||0):null;
+  const g=ti==null?null:new Map(T[ti][2].map((p,i)=>[p,i]));
+  const key={games:p=>g&&g.has(p)?g.get(p):999,war:p=>-P[p][10],young:p=>bd(p)==null?Infinity:-bd(p),old:p=>bd(p)==null?Infinity:bd(p),long:p=>P[p][1]-P[p][2],recent:p=>-P[p][2]}[RSORT];
+  return ps.sort(key?(x,y)=>(key(x)-key(y))||byName(x,y):byName)}
+const rsub=(p,ti)=>RSORT==="war"?(P[p][10]/10).toFixed(1)+" WAR · "+yrs(p):(ti!=null&&ageIn(p,ti)?"Age "+ageIn(p,ti)+" · ":"")+yrs(p);
 function rosterHTML(ti,u,seen){
   const f=norm(S.filter);let ps=T[ti][2].filter(p=>p!==u);
   if(f)ps=ps.filter(p=>norm(P[p][0]).includes(f));
-  ps.sort((x,y)=>P[x][6].localeCompare(P[y][6]));
+  sortRoster(ps,ti);
   return `<div class="roster"><div class="row"><b class="small">${esc(tname(ti))}</b><span class="small muted">${T[ti][2].length} players</span></div>
-    <input id="rfilter" type="search" placeholder="Search this roster" value="${esc(S.filter)}" autocomplete="off">
-    <div class="plist">${ps.map(p=>pbtn(p,ti,seen,(ageIn(p,ti)?"Age "+ageIn(p,ti)+" · ":"")+yrs(p))).join("")||'<span class="small muted">No one matches.</span>'}</div></div>`;
+    <div class="rtools"><input id="rfilter" type="search" placeholder="Search this roster" value="${esc(S.filter)}" autocomplete="off">${rsortHTML()}</div>
+    <div class="plist">${ps.map(p=>pbtn(p,ti,seen,rsub(p,ti))).join("")||'<span class="small muted">No one matches.</span>'}</div></div>`;
 }
 // Daily and Daily 9 show both ends of the perfect routes (Dom): the most-WAR one and the Deep Cut (least WAR in between). Same route shows once.
 function twoRoutes(h,best,pathList){const st=r=>pathList([{p:h.a,t:-1},...r]);
@@ -983,15 +994,15 @@ const scrollHole=()=>{const hc=document.querySelector(".hole");hc&&hc.scrollInto
 // Team history run (Dom, 2026-10-19): start on a franchise's first roster and relay through every season to its last.
 // Each stroke picks a player from the season you're on who was back the next season; you ride him to the end of his unbroken run with the team.
 const RUNY={};
-function runYears(f){if(RUNY[f])return RUNY[f];const m=new Map(),nm=new Map();for(let ti=0;ti<NT;ti++)if(T[ti][3]===f){const y=T[ti][0];if(!m.has(y)){m.set(y,new Set());nm.set(y,TN[T[ti][1]])}for(const p of T[ti][2])m.get(y).add(p)}
-  const ys=[...m.keys()].sort((x,y)=>x-y);ys.rost=ys.map(y=>m.get(y));ys.names=ys.map(y=>nm.get(y));return RUNY[f]=ys}
+function runYears(f){if(RUNY[f])return RUNY[f];const m=new Map(),nm=new Map(),tm=new Map();for(let ti=0;ti<NT;ti++)if(T[ti][3]===f){const y=T[ti][0];if(!m.has(y)){m.set(y,new Set());nm.set(y,TN[T[ti][1]]);tm.set(y,ti)}for(const p of T[ti][2])m.get(y).add(p)}
+  const ys=[...m.keys()].sort((x,y)=>x-y);ys.rost=ys.map(y=>m.get(y));ys.names=ys.map(y=>nm.get(y));ys.tis=ys.map(y=>tm.get(y));return RUNY[f]=ys}
 // Index of the last season in p's unbroken run starting at season i (i itself if he wasn't back next season).
 function runEnd(h,i,p){let j=i;while(j+1<h.rost.length&&h.rost[j+1].has(p))j++;return j}
 function runDist(h){const n=h.rost.length,d=new Int16Array(n).fill(-1);d[n-1]=0;
   for(let i=n-2;i>=0;i--){let m=-1;for(const p of h.rost[i]){const j=runEnd(h,i,p);if(j>i&&d[j]>=0&&(m<0||d[j]+1<m))m=d[j]+1}d[i]=m}return d}
 function startRun(){const c=S.custom.run,ys=runYears(c.fr);let k=Math.max(0,ys.findIndex(y=>y>=c.from));if(k<0)k=0;
-  const years=ys.slice(k),rost=ys.rost.slice(k),names=ys.names.slice(k),h={kind:"run",fr:c.fr,years,rost,names,trail:[{i:0,p:-1}],strokes:0,hints:0,done:false,gaveUp:false,meta:{},hintP:-1};
-  h.d=runDist(h);if(h.d[0]<0){let i=0;while(h.d[i]<0)i++;h.years=years.slice(i);h.rost=rost.slice(i);h.names=names.slice(i);h.d=runDist(h)}
+  const years=ys.slice(k),rost=ys.rost.slice(k),names=ys.names.slice(k),tis=ys.tis.slice(k),h={kind:"run",fr:c.fr,years,rost,names,tis,trail:[{i:0,p:-1}],strokes:0,hints:0,done:false,gaveUp:false,meta:{},hintP:-1};
+  h.d=runDist(h);if(h.d[0]<0){let i=0;while(h.d[i]<0)i++;h.years=years.slice(i);h.rost=rost.slice(i);h.names=names.slice(i);h.tis=tis.slice(i);h.d=runDist(h)}
   h.best=h.d[0];h.par=h.best+2;S.hole=h;S.filter=""}
 const runAt=h=>h.trail[h.trail.length-1].i;
 function runPick(p){const h=S.hole;if(h.done)return;const i=runAt(h),j=runEnd(h,i,p);
@@ -1017,10 +1028,10 @@ function runHTML(){const h=S.hole,i=runAt(h),n=h.years.length,first=h.years[0],l
       <div class="eyebrow" style="margin-top:10px">One of the fewest-pick relays</div><ol class="small">${best.map(e=>`<li><button class="cardlink" data-card="${e.p}">${esc(P[e.p][0])}</button> <span class="muted">· ${h.years[e.from]}–${h.years[e.i]}</span></li>`).join("")}</ol>
       <div class="sharebox" id="sharebox">${esc(runShare())}</div>
       <div class="actions"><button class="btn primary" id="share">Copy result</button><button class="btn" id="runagain">Another team</button></div></div></section>`;return s}
-  const q=norm(S.filter.trim()),ps=[...h.rost[i]].filter(p=>!q||norm(P[p][0]).includes(q)).sort((x,y)=>P[x][6].localeCompare(P[y][6]));
+  const q=norm(S.filter.trim()),ps=[...h.rost[i]].filter(p=>!q||norm(P[p][0]).includes(q));sortRoster(ps,h.tis?h.tis[i]:null);
   s+=`<div class="small">Pick a player from the <b>${h.years[i]} ${esc(h.names[i])}</b> who was back in ${h.years[i]+1}. You ride him through his run with the team, then pick again. Reach ${last} in as few picks as you can.</div>
-    <input id="rfilter" type="search" placeholder="Search the ${h.years[i]} roster" value="${esc(S.filter)}" autocomplete="off">
-    <div class="plist">${ps.map(p=>`<div class="pwrap"><button class="pbtn${p===h.hintP?" hinted":""}" data-runp="${p}"><span class="pn">${esc(P[p][0])}</span><span class="py">${yrs(p)}</span></button><button class="cardbtn" data-card="${p}" aria-label="${esc(P[p][0])} baseball card">${CARD_ICO}Card</button></div>`).join("")||'<span class="small muted">No one matches.</span>'}</div>
+    <div class="rtools"><input id="rfilter" type="search" placeholder="Search the ${h.years[i]} roster" value="${esc(S.filter)}" autocomplete="off">${rsortHTML()}</div>
+    <div class="plist">${ps.map(p=>`<div class="pwrap"><button class="pbtn${p===h.hintP?" hinted":""}" data-runp="${p}"><span class="pn">${esc(P[p][0])}</span><span class="py">${rsub(p,h.tis?h.tis[i]:null)}</span></button><button class="cardbtn" data-card="${p}" aria-label="${esc(P[p][0])} baseball card">${CARD_ICO}Card</button></div>`).join("")||'<span class="small muted">No one matches.</span>'}</div>
     <div class="actions"><button class="btn" id="runhint">Hint +1</button><button class="btn" id="runback"${h.trail.length<2?" disabled":""}>Back +1</button><button class="btn" id="runquit">New run</button></div></section>`;
   return s}
 function runShare(){const h=S.hole,rel=h.strokes-h.par;
@@ -1192,6 +1203,7 @@ function bind(){bindCards();fillCrowd();
   document.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{S.diff=b.dataset.diff;startEndless();render()});
   document.querySelectorAll("[data-rh]").forEach(b=>b.onclick=()=>{startRound(+b.dataset.rh);render()});
   document.querySelectorAll("[data-fr]").forEach(b=>b.onclick=()=>{const f=+b.dataset.fr,a=S.custom.fr;S.custom.fr=a.includes(f)?a.filter(x=>x!==f):[...a,f];render()});
+  const rso=$("#rsort");if(rso)rso.onchange=()=>{RSORT=rso.value;store.set("rsort",RSORT);render()};
   const rf=$("#rfilter");if(rf)rf.oninput=()=>keepFocus("rfilter",()=>S.filter=rf.value);
   const ts=$("#tsearch");if(ts)ts.oninput=()=>keepFocus("tsearch",()=>S.tq=ts.value);
   const on=(id,fn)=>{const e=$("#"+id);if(e)e.onclick=fn};
