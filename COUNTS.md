@@ -2,9 +2,9 @@
 
 Live view: https://separationgolf.com/admin.html
 
-Updated Oct 24, 2026 1:36 AM Eastern.
+Updated Oct 25, 2026 1:35 AM Eastern.
 
-- Devices that have ever opened the game: 161
+- Devices that have ever opened the game: 164
 
 | Day | Visitors | Games played | Started the Daily | Holed the Daily | Gave up |
 |---|---|---|---|---|---|
@@ -18,3 +18,4 @@ Updated Oct 24, 2026 1:36 AM Eastern.
 | 2026-10-22 (Daily #32) | 0 | 0 | 0 | 0 | 0 |
 | 2026-10-23 (Daily #33) | 0 | 0 | 0 | 0 | 0 |
 | 2026-10-24 (Daily #34) | 0 | 0 | 0 | 0 | 0 |
+| 2026-10-25 (Daily #35) | 0 | 0 | 0 | 0 | 0 |
