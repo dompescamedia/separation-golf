@@ -663,7 +663,7 @@ function poolFor(C){const need=(C?C.to-C.from:99)>=3?2:1,out=[],extra=[];
   for(let i=0;i<NP;i++){let n=0;for(const ti of PT[i])if(inYears(ti,C)&&inTeams(ti,C))n++;if(n<need)continue;(P[i][4]?out:extra).push(i)}
   for(const i of extra){if(out.length>=40)break;out.push(i)}return out}
 const weight=i=>Math.pow(P[i][4]||1,1.6);
-function wpick(arr,rng){let tot=0;for(const i of arr)tot+=weight(i);let x=rng()*tot;for(const i of arr){x-=weight(i);if(x<=0)return i}return arr[arr.length-1]}
+function wpick(arr,rng,wf){wf=wf||weight;let tot=0;for(const i of arr)tot+=wf(i);let x=rng()*tot;for(const i of arr){x-=wf(i);if(x<=0)return i}return arr[arr.length-1]}
 const mid=i=>(P[i][1]+P[i][2])/2;
 // Older player tees off, younger player is the pin. Birth year first, debut year as a fallback.
 const ageKey=i=>(P[i][7]||P[i][1]-23)*10000+P[i][1];
@@ -677,9 +677,9 @@ function pickPair(rng,o){
   const passes=o.strictOnly?[[o.lo,o.hi,g0]]:[[o.lo,o.hi,g0],[o.lo,o.hi,0],[Math.max(1,o.lo-1),o.hi+2,0],[1,99,0]];
   for(const [l,h,g] of passes){
     for(let tries=0;tries<(o.tee!=null?1:40);tries++){
-      const a=o.tee!=null?o.tee:wpick(pool,rng),{dist}=bfs(a,allow);
+      const a=o.tee!=null?o.tee:wpick(pool,rng,o.w),{dist}=bfs(a,allow);
       const c=bpool.filter(b=>b!==a&&dist[b]>=l&&dist[b]<=h&&Math.abs(mid(a)-mid(b))>=g&&(!o.pinOk||(isOlder(a,b)&&o.pinOk(b))));
-      if(c.length)return [a,wpick(c,rng)];
+      if(c.length)return [a,wpick(c,rng,o.w)];
     }
   }
   return o.strictOnly?null:[pool[0],pool[1]];
@@ -735,11 +735,31 @@ const roundTee=(i,legends)=>(played70s(i)&&P[i][4]>=18)||(legends&&P[i][2]<1970&
 const roundPin=i=>P[i][2]>=2018&&P[i][4]>=14;
 // Daily 9 holes pinned by date. 2026-10-18 is frozen to what it was before 2026 rosters were added mid-day.
 const ROUND_SET={"2026-10-18":"morrija02>cabreas01 dawsoan01>acunaro01 robinbr01>harpebr03 brettge01>blackch02 boudrlo01>freemfr01 benchjo01>zobribe01 raineti01>lindofr01 robinfr02>judgeaa01 aaronha01>skenepa01"};
+// Daily 9 from 2026-11-04 (Dom): players said Hank Aaron and Paul Skenes showed up almost every day, mostly on hole 9.
+// Hole 9 wants a long route, few recent stars are that far from the 1970s, and fame^1.6 weighting made the most famous one (Skenes) win most days.
+// Now: a flatter weight, no player twice in the same week (weeks count from D9_V2), and a bench of players kept out until a date.
+const D9_V2="2026-11-04",D9_BENCH={aaronha01:"2026-12-02",skenepa01:"2026-12-02"};
+const d9w=i=>Math.pow(P[i][4]||1,.7);
+// One-off pins for a single hole: date -> {hole index: pin player ID}. 2026-11-04 hole 1 ends on Brett Gardner (Dom, for a player whose favorite he is).
+const ROUND_PIN={"2026-11-04":{0:"gardnbr01"}};
+// Dates whose Daily 9 was regenerated mid-day: saved holes from the old set are cleared on load (d9Redo).
+const D9_REDO=["2026-11-04"];
+const addDay=(s,n)=>{const x=new Date(s+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
 function roundPlan(d,i){const k=d+":"+i;if(PLAN[k])return PLAN[k];
   if(ROUND_SET[d]){const pr=ROUND_SET[d].split(" ")[i].split(">").map(x=>ID2.get(x));if(pr.every(x=>x!=null))return PLAN[k]={pair:pr,C:null}}const [lo,hi]=ROUND_BANDS[i];
   // No player appears twice in a day's Daily 9 or in that day's Daily.
   const used=new Set(dailyPlan(d).pair);for(let j=0;j<i;j++)roundPlan(d,j).pair.forEach(x=>used.add(x));
-  return PLAN[k]={pair:pickPair(rngFrom("round2:"+k),{lo,hi,teeOk:p=>!used.has(p)&&roundTee(p,i===4||i===8),pinOk:p=>!used.has(p)&&roundPin(p)}),C:null}}
+  if(d<D9_V2)return PLAN[k]={pair:pickPair(rngFrom("round2:"+k),{lo,hi,teeOk:p=>!used.has(p)&&roundTee(p,i===4||i===8),pinOk:p=>!used.has(p)&&roundPin(p)}),C:null};
+  // Earlier days of the same week.
+  const n=Math.round((new Date(d+"T12:00:00Z")-new Date(D9_V2+"T12:00:00Z"))/864e5);
+  for(let e=addDay(D9_V2,n-n%7);e<d;e=addDay(e,1))for(let j=0;j<9;j++)roundPlan(e,j).pair.forEach(x=>used.add(x));
+  const ok=p=>!used.has(p)&&!(D9_BENCH[P[p][3]]&&d<D9_BENCH[P[p][3]]);
+  const fix=ROUND_PIN[d]&&ROUND_PIN[d][i]!=null?ID2.get(ROUND_PIN[d][i]):null;
+  const pinOk=fix!=null?p=>p===fix:p=>ok(p)&&roundPin(p);
+  return PLAN[k]={pair:pickPair(rngFrom("round3:"+k),{lo,hi,w:d9w,teeOk:p=>ok(p)&&roundTee(p,i===4||i===8),pinOk}),C:null}}
+function d9Redo(){const d=etDate();if(!D9_REDO.includes(d))return;let stale=false;
+  for(let i=0;i<9&&!stale;i++){const r=store.get("round:"+d+":"+i);if(!r)continue;const pr=roundPlan(d,i).pair.map(x=>P[x][3]);if(!(pr.includes(r.a)&&pr.includes(r.b)))stale=true}
+  if(!stale)return;try{for(let i=0;i<9;i++)localStorage.removeItem("round:"+d+":"+i);localStorage.removeItem("mull:"+d)}catch(e){}}
 const DIFFS={easy:{label:"Easy",lo:2,hi:2},medium:{label:"Medium",lo:3,hi:3},hard:{label:"Hard",lo:4,hi:5},legend:{label:"Legend",lo:6,hi:12}};
 const PRESETS=[["All time",MINY,MAXY],["Since 2000",2000,MAXY],["1980–2026",1980,MAXY],["1950–1999",1950,1999],["Before 1950",MINY,1949]];
 const S={hallOpen:new Set(),hallQ:{},hallT:{},clockOn:!!store.get("clock"),dir:store.get("dir")==="young"?"young":"old",mode:"daily",hole:null,open:-1,filter:"",tq:"",peek:{},diff:"medium",tally:{holes:0,over:0},rd:null,
@@ -1569,7 +1589,7 @@ fetch("data.json").then(r=>r.json()).then(d=>{
   P=d.players;BRID=d.br||{};TN=d.teamNames;T=d.teams;FR=d.franchises;NP=P.length;NT=T.length;
   PT=Array.from({length:NP},()=>[]);T.forEach((t,i)=>t[2].forEach(p=>PT[p].push(i)));
   ID2=new Map(P.map((p,i)=>[p[3],i]));
-  launchReset();countVisit();
+  launchReset();d9Redo();countVisit();
   // Visits from a shared result link (?s=d31 / n31): counted once a day per device, then the tag comes off the address.
   try{const sp=new URLSearchParams(location.search).get("s");if(sp){if(/^[dn]\d{1,4}$/.test(sp))pingOnce("from-share-"+etDate());history.replaceState(null,"",location.pathname+location.hash)}}catch(e){}
   if(!fromHash()){startDaily();render()}
